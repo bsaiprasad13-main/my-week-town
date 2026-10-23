@@ -5,7 +5,7 @@ It's 2040. Your AI agent does almost everything for you. Every Sunday, last week
 Plain HTML, CSS and JavaScript. No install. Double-click `index.html` (best at phone width).
 
 ## The journey
-1. **Start:** "Last week, your agent did 43 things for you. 5 of them were choices about your life." Tap **Wake up the cat**.
+1. **Start:** "Last week, your agent did 43 things for you. 5 of them were crucial choices." Tap **Wake up the cat**.
 2. **Priority stop:** one line, such as "Buying a TV, what matters most to you?", with 4 priorities to pick from, or **Something else** to type your own.
 3. **Reveal:** your priority next to your agent's priority, and what it did last week. If they differ: **✋ Tell my agent: For TVs, picture quality comes first.**
 4. **Town hall:** "3 of 5 choices made your way", a table of your priorities vs your agent's, and what you told your agent.

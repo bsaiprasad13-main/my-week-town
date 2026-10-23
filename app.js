@@ -229,7 +229,7 @@ function start(wi) {
   openSheet(
     '<p class="kicker">It\'s 2040</p>' +
     '<h1>Last week, your agent did <span class="hl">' + game.week.total + " things</span> for you.</h1>" +
-    '<p class="lead">' + n + " of them were choices about your life (" + esc(game.week.period) + "). Wake up the cat and check, choice by choice:</p>" +
+    '<p class="lead">' + n + " of them were crucial choices (" + esc(game.week.period) + "). Wake up the cat and check, choice by choice:</p>" +
     '<ul class="aims"><li>' + ico("target") + "<span><b>Does your agent still choose like you?</b> Your priority vs your agent's priority.</span></li></ul>" +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>" +
     '<button class="btn ghost" id="peek">' + ico("clipboard") + "See last week's log</button>", true);
