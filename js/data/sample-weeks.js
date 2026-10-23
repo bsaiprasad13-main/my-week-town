@@ -92,7 +92,7 @@ MWT.SAMPLE_WEEKS = [
   }
 ];
 
-// Short names shown under each building on the map
+// Short names shown on cards and results
 MWT.SHORT_NAMES = {
   "w10-d1": "Coorg trip", "w10-d2": "Health insurance", "w10-d3": "New phone", "w10-d4": "Vendor B",
   "w10-d5": "Team lead pick", "w10-d6": "Science fair", "w10-d7": "Birthday watch", "w10-d8": "Meal plan",
