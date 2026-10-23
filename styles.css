@@ -120,3 +120,11 @@ p { margin: 0 0 10px; }
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { transform: translateY(26px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .cloud, .spot.here .bldg, .zz.on { animation: none !important; } }
+
+/* Your reason vs your agent's reason */
+.qtype { display: inline-block; font-size: 0.75rem; font-weight: 800; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 3px 10px; margin-bottom: 6px; }
+.why { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.why > div { background: var(--soft); border-radius: 14px; padding: 10px 12px; }
+.why small { display: block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.why p { margin: 2px 0 0; font-weight: 700; line-height: 1.35; }
+.match { font-size: 0.92rem; color: var(--muted); margin-bottom: 10px; }
