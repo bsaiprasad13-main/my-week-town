@@ -253,9 +253,9 @@ function ask(i) {
     "<h2>" + esc(st.question) + '</h2><div class="opts grid2" id="opts">' +
     st.options.map(function (o) { return '<button class="opt" data-k="' + o.k + '">' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
-    '<form class="own" id="own" hidden><label for="ownin">What matters most to you here?</label>' +
-    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div>' +
-    '<button class="back" type="button" id="ownback">← Back to options</button></form>');
+    '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What matters most to you here?</label>' +
+    '<button class="back" type="button" id="ownback">← Back</button></div>' +
+    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>');
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
     b.addEventListener("click", function () { answer(i, b.getAttribute("data-k")); });
   });

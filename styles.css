@@ -256,3 +256,7 @@ pre { margin: 0; background: #eef1f3; border: 1px solid var(--line); border-radi
 /* Back buttons */
 .back { display: block; margin: 10px auto 0; border: 0; background: transparent; color: var(--muted); font-weight: 700; font-size: 0.9rem; padding: 8px 12px; border-radius: 999px; }
 .back:hover, .back:focus-visible { background: var(--soft); color: var(--text); outline: none; }
+
+.ownhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; }
+.ownhead label { margin: 0; }
+.ownhead .back { margin: 0; flex: none; background: var(--soft); border: 1px solid var(--line); padding: 6px 12px; }
