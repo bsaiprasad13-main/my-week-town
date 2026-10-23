@@ -8,100 +8,31 @@ var game;
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function pct(v, total) { return (v / total * 100) + "%"; }
 
-/* ---------- The walker: a little pixel person, drawn in code (16 x 16 pixels per frame) ---------- */
-var COLORS = { H: "#4b3a2f", S: "#e3b48e", K: "#3a3330", T: "#5f7f99", P: "#55606b", B: "#3d3a38" };
-var E = "................";
-var HEAD = {
-  front: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", ".....SKSSKS.....", ".....SSSSSS.....", "......SSSS......"],
-  blink: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", ".....SSSSSS.....", ".....SSSSSS.....", "......SSSS......"],
-  back:  [E, "......HHHH......", ".....HHHHHH.....", ".....HHHHHH.....", ".....HHHHHH.....", ".....SHHHHS.....", "......SSSS......"],
-  side:  [E, "......HHHH......", ".....HHHHHH.....", ".....HHHSSS.....", ".....HHSSKS.....", ".....HSSSSS.....", "......SSSS......"]
-};
-var BODY = {
-  front:  [".....TTTTTT.....", "....TTTTTTTT....", "....TTTTTTTT....", "....STTTTTTS...."],
-  swingA: [".....TTTTTT.....", "....TTTTTTTT....", "...STTTTTTTT....", "....TTTTTTTS...."],
-  swingB: [".....TTTTTT.....", "....TTTTTTTT....", "....TTTTTTTTS...", "....STTTTTTT...."],
-  side:   ["......TTTT......", ".....TTTTTT.....", ".....TTTTTT.....", "......TTTS......"],
-  sideA:  ["......TTTT......", ".....TTTTTTT....", "....TTTTTTTS....", "...S..TTTT......"]
-};
-var LEGS = {
-  stand: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", ".....PP..PP.....", "....BBB..BBB...."],
-  stepA: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", ".....PP..BBB....", "....BBB........."],
-  stepB: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", "....BBB..PP.....", ".........BBB...."],
-  side:  ["......PPPP......", "......PPPP......", ".......PP.......", ".......PP.......", ".......BBB......"],
-  sideA: ["......PPPP......", "......PP.PP.....", ".....PP...PP....", ".....PP...PP....", "....BB....BBB..."],
-  sit:   ["...PPPPPPPPPP...", "...PPPPPPPPPP...", "..BB........BB.."]
-};
-var FRAMES = {
-  stand:  HEAD.front.concat(BODY.front, LEGS.stand),
-  blink:  HEAD.blink.concat(BODY.front, LEGS.stand),
-  downA:  HEAD.front.concat(BODY.swingA, LEGS.stepA),
-  downB:  HEAD.front.concat(BODY.swingB, LEGS.stepB),
-  upA:    HEAD.back.concat(BODY.swingA, LEGS.stepA),
-  upB:    HEAD.back.concat(BODY.swingB, LEGS.stepB),
-  up:     HEAD.back.concat(BODY.front, LEGS.stand),
-  side:   HEAD.side.concat(BODY.side, LEGS.side),
-  sideA:  HEAD.side.concat(BODY.sideA, LEGS.sideA),
-  // Arms up: waking up and stretching, or happy at the town hall
-  stretch: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", "..S..SKSSKS..S..", "..T..SSSSSS..T..", "..T...SSSS...T..",
-            "..TTTTTTTTTTTT..", ".....TTTTTT.....", ".....TTTTTT.....", ".....TTTTTT....."].concat(LEGS.stand),
-  // Waving while you answer
-  wave1: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH..S..", ".....SKSSKS..T..", ".....SSSSSS..T..", "......SSSS..T...",
-          ".....TTTTTTTT...", "....TTTTTTT.....", "....TTTTTTT.....", "....STTTTTT....."].concat(LEGS.stand),
-  wave2: [E, "......HHHH......", ".....HHHHHH....S", ".....HSSSSH...T.", ".....SKSSKS..T..", ".....SSSSSS..T..", "......SSSS..T...",
-          ".....TTTTTTTT...", "....TTTTTTT.....", "....TTTTTTT.....", "....STTTTTT....."].concat(LEGS.stand),
-  // Napping, sitting cross-legged, with a slow breath
-  nap1: [E, E].concat(HEAD.blink, BODY.front, LEGS.sit),
-  nap2: [E, E, E].concat(HEAD.blink, BODY.front.slice(1), LEGS.sit)
-};
-
-// Paint every frame (and a mirrored copy for walking left) into one sprite sheet
-var SHEET = {}, sheetURL = (function () {
-  var names = Object.keys(FRAMES), all = names.concat(["side", "sideA"].map(function (n) { return n + "L"; }));
-  var c = document.createElement("canvas");
-  c.width = all.length * 32; c.height = 32;
-  var g = c.getContext("2d");
-  all.forEach(function (name, i) {
-    var left = /L$/.test(name), rows = FRAMES[left ? name.slice(0, -1) : name];
-    SHEET[name] = i;
-    rows.forEach(function (row, y) {
-      for (var x = 0; x < 16; x++) {
-        var ch = row[x];
-        if (!COLORS[ch]) continue;
-        g.fillStyle = COLORS[ch];
-        g.fillRect(i * 32 + (left ? 15 - x : x) * 2, y * 2, 2, 2);
-      }
-    });
-  });
-  return c.toDataURL();
-})();
-
+/* ---------- The cat (oneko sprite sheet by adryd, MIT, 32 px frames) ---------- */
 var SPRITES = {
-  idle: ["stand"], blink: ["blink"], alert: ["stretch"], tired: ["stretch"],
-  sleeping: ["nap1", "nap2"], scratch: ["wave1", "wave2"],
-  S: ["downA", "stand", "downB", "stand"], N: ["upA", "up", "upB", "up"],
-  E: ["sideA", "side"], NE: ["sideA", "side"], SE: ["sideA", "side"],
-  W: ["sideAL", "sideL"], NW: ["sideAL", "sideL"], SW: ["sideAL", "sideL"]
+  idle: [[-3, -3]], alert: [[-7, -3]], tired: [[-3, -2]],
+  sleeping: [[-2, 0], [-2, -1]], scratch: [[-5, 0], [-6, 0], [-7, 0]],
+  N: [[-1, -2], [-1, -3]], NE: [[0, -2], [0, -3]], E: [[-3, 0], [-3, -1]], SE: [[-5, -1], [-5, -2]],
+  S: [[-6, -3], [-7, -2]], SW: [[-5, -3], [-6, -1]], W: [[-4, -2], [-4, -3]], NW: [[-1, 0], [-1, -1]]
 };
 var cat = { mode: "sleeping", frame: 0, idleTicks: 0 };
 
 function setSprite(name, frame) {
   var el = document.getElementById("cat-sprite");
   if (!el) return;
-  var set = SPRITES[name];
-  if (!el.style.backgroundImage) el.style.backgroundImage = "url(" + sheetURL + ")";
-  el.style.backgroundPosition = (-SHEET[set[frame % set.length]] * 32) + "px 0";
+  var set = SPRITES[name], f = set[frame % set.length];
+  el.style.backgroundPosition = (f[0] * 32) + "px " + (f[1] * 32) + "px";
 }
 
-// 10 frames a second
+// 10 frames a second, like the original
 setInterval(function () {
   cat.frame++;
   if (cat.mode === "idle") {
     cat.idleTicks++;
-    var t = cat.idleTicks % 60; // blinks, and waves now and then while you answer
-    setSprite(t > 40 && t < 52 ? "scratch" : t === 20 || t === 21 ? "blink" : "idle", Math.floor(cat.frame / 3));
+    var t = cat.idleTicks % 60; // scratches now and then while you answer
+    setSprite(t > 40 && t < 52 ? "scratch" : "idle", cat.frame);
   } else if (cat.mode === "sleeping") {
-    setSprite("sleeping", Math.floor(cat.frame / 8));
+    setSprite("sleeping", Math.floor(cat.frame / 4));
   } else {
     setSprite(cat.mode, cat.frame);
   }
@@ -218,6 +149,9 @@ function logFor(i) { return game.week.log.filter(function (x) { return x.stop ==
 
 /* ---------- Behind the town: what the agent shared, and our model's instructions ---------- */
 var behind = document.getElementById("behind");
+var INSTR_KEY = "mwt-instructions";
+function loadInstr() { try { return localStorage.getItem(INSTR_KEY) || MODEL.text; } catch (e) { return MODEL.text; } }
+function saveInstr(v) { try { if (v == null) localStorage.removeItem(INSTR_KEY); else localStorage.setItem(INSTR_KEY, v); } catch (e) {} }
 function openBehind(tab) {
   var w = game.week, used = w.log.filter(function (x) { return x.stop != null; }).length;
   var rows = w.log.map(function (x) {
@@ -228,21 +162,30 @@ function openBehind(tab) {
       (x.why ? "<small>Agent's reason: " + esc(x.why) + "</small>" : "") +
       '<span class="pick">' + (st ? "→ Stop " + (x.stop + 1) + ": " + esc(SKILLS[st.skill].name) : "Skipped. " + esc(x.skip)) + "</span></div></li>";
   }).join("");
-  var steps = MODEL.steps.map(function (s) {
-    return '<div class="step">' + ico(s.icon) + "<div><b>" + esc(s.title) + "</b><ul>" +
-      s.lines.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul></div></div>";
-  }).join("");
   behind.innerHTML =
     '<div class="panel"><div class="phead"><h2>Behind the town</h2><button class="x" id="bx" aria-label="Close">✕</button></div>' +
-    '<div class="seg" role="tablist"><button data-t="log">' + ico("clipboard") + "From your agent</button>" +
+    '<div class="seg" role="tablist"><button data-t="log">' + ico("clipboard") + "Last week's log</button>" +
     '<button data-t="model">' + ico("robot") + "Model instructions</button></div>" +
-    '<section data-p="log"><div class="flow"><span>' + ico("robot") + "<b>" + w.total + "</b> things your agent did</span><i>→</i>" +
+    '<section data-p="log"><div class="flow"><span>' + ico("robot") + "<b>" + w.total + "</b> things your agent did last week</span><i>→</i>" +
     "<span>" + ico("search") + "<b>" + used + "</b> choices that matter</span><i>→</i><span>" + ico("hall") + "<b>" + used + "</b> stops in your town</span></div>" +
-    '<p class="lead">This is what your agent shared with My Week Town for ' + esc(w.label) + ". Our model kept the choices that matter and skipped the routine ones.</p>" +
+    '<p class="lead">Your agent shared this log of <b>last week (' + esc(w.period) + ")</b>. Our model kept the choices that matter and skipped the routine ones.</p>" +
     '<ul class="log">' + rows + '</ul><p class="more">+ ' + (w.total - w.log.length) + " more small tasks (reminders, replies, refills), all routine.</p></section>" +
-    '<section data-p="model"><p class="lead">' + esc(MODEL.intro) + '</p><div class="steps">' + steps + "</div>" +
+    '<section data-p="model"><p class="lead">' + esc(MODEL.intro) + "</p>" +
+    '<div class="editor"><div class="ehead">' + ico("scroll") + "<b>Instructions</b><span id=\"estate\"></span></div>" +
+    '<textarea id="instr" spellcheck="false" aria-label="Model instructions"></textarea>' +
+    '<div class="eacts"><button class="btn small" id="esave">Save</button><button class="btn ghost small" id="ereset">Reset to default</button></div></div>' +
+    '<p class="note">Your edits are saved on this device. In the real app, they go to the model when it builds next Sunday\'s town.</p>' +
     "<h3>What it sends back for one stop</h3><pre>" + esc(MODEL.example) + "</pre></section></div>";
   behind.hidden = false;
+
+  // Editable instructions, like project instructions
+  var ta = document.getElementById("instr"), stateEl = document.getElementById("estate");
+  ta.value = loadInstr();
+  function mark(t) { stateEl.textContent = t; }
+  mark(ta.value === MODEL.text ? "Default" : "Edited");
+  ta.addEventListener("input", function () { mark("Not saved"); });
+  document.getElementById("esave").addEventListener("click", function () { saveInstr(ta.value); mark(ta.value === MODEL.text ? "Default" : "Saved ✓"); });
+  document.getElementById("ereset").addEventListener("click", function () { ta.value = MODEL.text; saveInstr(null); mark("Default"); });
   function show(t) {
     behind.querySelectorAll("[data-t]").forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-t") === t); });
     behind.querySelectorAll("[data-p]").forEach(function (p) { p.hidden = p.getAttribute("data-p") !== t; });
@@ -269,10 +212,10 @@ function start(wi) {
   var n = game.week.stops.length;
   openSheet(
     '<p class="kicker">' + (wi ? "A week later" : "It's 2040") + "</p>" +
-    '<h1>Your agent did <span class="hl">' + game.week.total + " things</span> for you this week.</h1>" +
-    '<p class="lead">' + n + " of them were choices that say something about you. Walk through your town and see if they still feel like yours.</p>" +
-    '<button class="btn" id="go">Wake up and walk</button>' +
-    '<button class="btn ghost" id="peek">' + ico("clipboard") + "See what your agent shared</button>");
+    '<h1>Last week, your agent did <span class="hl">' + game.week.total + " things</span> for you.</h1>" +
+    '<p class="lead">' + n + " of them shaped you (" + esc(game.week.period) + "). The cat is asleep at home. Wake it up, and it will walk you to each one with a quick question.</p>" +
+    '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>" +
+    '<button class="btn ghost" id="peek">' + ico("clipboard") + "See last week's log</button>");
   document.getElementById("go").addEventListener("click", function () { closeSheet(); setTimeout(next, 350); });
   document.getElementById("peek").addEventListener("click", function () { openBehind("log"); });
 }
@@ -288,9 +231,8 @@ function ask(i) {
   el.classList.remove("locked");
   el.classList.add("here");
   openSheet(place(st, i) +
-    '<p class="context">' + esc(st.context) + "</p>" +
-    '<div class="chips"><span class="qtype">' + esc(TYPES[st.type]) + "</span>" +
-    (lg ? '<span class="src">' + ico("clipboard") + "From your agent's log · " + esc(lg.day) + "</span>" : "") + "</div>" +
+    '<div class="chips"><span class="qtype">' + esc(SKILLS[st.skill].group) + " · " + esc(SKILLS[st.skill].name) + "</span>" +
+    (lg ? '<span class="src">' + ico("clipboard") + "From last week's log · " + esc(lg.day) + "</span>" : "") + "</div>" +
     "<h2>" + esc(st.question) + '</h2><div class="opts">' +
     st.options.map(function (o) { return '<button class="opt" data-k="' + o.k + '">' + esc(o.t) + "</button>"; }).join("") + "</div>");
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
@@ -310,7 +252,7 @@ function answer(i, key) {
   // Your reason next to your agent's reason
   var same = st.agent && key === st.agent;
   var compare = '<div class="why"><div class="me"><small>You</small><p>' + esc(o.me || o.t) + "</p></div>" +
-    '<div class="ag"><small>' + ico("robot") + "Your agent</small><p>" + esc(st.reason) + "</p></div></div>" +
+    '<div class="ag"><small>' + ico("robot") + "Your agent, last week</small><p>" + esc(st.reason) + "</p></div></div>" +
     (st.agent ? '<p class="match">' + (same ? "✔ Your agent chose for the same reason as you." : "Your agent chose for a different reason.") + "</p>" : "");
 
   var s = SKILLS[st.skill];
@@ -351,7 +293,7 @@ function ending() {
     }).join("");
     var ring = Math.round(strong / n * 100);
     finale.innerHTML =
-      '<div class="card"><p class="kicker center">Your town this week</p>' +
+      '<div class="card"><p class="kicker center">Your town · last week</p>' +
       '<div class="score"><div class="ring" style="--p:' + ring + '"><span>' + strong + "<small>/" + n + "</small></span></div>" +
       "<div><h1>skills still feel like yours</h1>" +
       '<p class="lead">' + (fading ? fading + " " + (fading === 1 ? "is" : "are") + " starting to fade because your agent does them for you. One small step each keeps them alive." : "Your agent helps you without taking over. Keep it that way.") + "</p></div></div>" +
