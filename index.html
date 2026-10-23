@@ -5,20 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>My Week Town</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="top">
-    <span class="brand">🏘️ My Week Town</span>
-    <span class="pill" id="status">Sunday</span>
+    <span class="brand"><img src="icons/home.png" alt="">My Week Town</span>
+    <span class="right">
+      <span class="pill" id="status">Sunday</span>
+      <button class="pill btnpill" id="behind-btn"><img src="icons/robot.png" alt="">Behind the town</button>
+    </span>
   </header>
 
   <div class="world"><div class="map" id="map"></div></div>
 
   <section class="sheet" id="sheet" aria-live="polite"></section>
   <section class="finale" id="finale" hidden></section>
+  <section class="behind" id="behind" hidden></section>
 
+  <!-- Icons: Fluent Emoji 3D by Microsoft, MIT License (see icons-LICENSE.txt) -->
+  <script src="data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
