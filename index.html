@@ -3,18 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weekly Why Cards</title>
+  <title>My Week Town</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="top">
-    <span class="brand">🃏 Weekly Why Cards</span>
-    <span class="when">Sunday, 10 March 2040</span>
+    <span class="brand">🏘️ My Week Town</span>
+    <span class="chip-top" id="status">Sunday</span>
   </header>
-  <div class="progress" aria-hidden="true"><span id="bar"></span></div>
-  <main id="screen" aria-live="polite"></main>
+
+  <div class="world" id="world">
+    <div class="map" id="map"></div>
+  </div>
+
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+  <section class="finale" id="finale" hidden></section>
+
   <script src="app.js"></script>
 </body>
 </html>
