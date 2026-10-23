@@ -211,7 +211,7 @@ function start(wi) {
   statusEl.textContent = game.week.label;
   var n = game.week.stops.length;
   openSheet(
-    '<p class="kicker">' + (wi ? "A week later" : "It's 2040") + "</p>" +
+    '<p class="kicker">' + "It's 2040" + "</p>" +
     '<h1>Last week, your agent did <span class="hl">' + game.week.total + " things</span> for you.</h1>" +
     '<p class="lead">' + n + " of them shaped you (" + esc(game.week.period) + "). The cat is asleep at home. Wake it up, and it will walk you to each one with a quick question.</p>" +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>" +
@@ -273,6 +273,12 @@ function answer(i, key) {
   document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i++; setTimeout(next, 300); });
 }
 
+// Skills not checked this week: the model picks from these next Sunday
+function nextSkills() {
+  var used = game.week.stops.map(function (s) { return s.skill; });
+  return Object.keys(SKILLS).filter(function (k) { return used.indexOf(k) === -1; });
+}
+
 function ending() {
   var r = game.results, n = r.length;
   var strong = r.filter(function (x) { return x.strong; }).length;
@@ -307,11 +313,13 @@ function ending() {
       "<li>" + ico("speech") + "<span>You know why your agent did all " + n + " things, and whether that's your reason too.</span></li>" +
       "<li>" + ico("search") + "<span>You know which skills are slipping, before the day you need them.</span></li>" +
       "<li>" + ico("target") + "<span>" + (fixed.length ? "Your agent now works a little more like you." : "You made " + n + " calls yourself, in about 2 minutes.") + "</span></li>" +
-      "</ul></div></div>" +
+      "</ul></div>" +
+      '<div class="tile wide"><h3>' + ico("calendar") + 'Next Sunday, your cat checks</h3><ul class="chiplist">' +
+      nextSkills().map(function (k) { return "<li>" + ico(SKILLS[k].part) + esc(SKILLS[k].name) + "</li>"; }).join("") + "</ul></div></div>" +
       '<p class="closing">Your agent saves your time.<br><span>My Week Town keeps you, you.</span></p>' +
-      '<button class="btn" id="again">' + (game.wi < WEEKS.length - 1 ? "Walk next Sunday's town" : "Start over") + "</button>" +
+      '<button class="btn" id="again">Walk the town again</button>' +
       '<button class="btn ghost" id="peek2">' + ico("robot") + "How this town was made</button></div>";
-    document.getElementById("again").addEventListener("click", function () { start(game.wi < WEEKS.length - 1 ? game.wi + 1 : 0); });
+    document.getElementById("again").addEventListener("click", function () { start(0); });
     document.getElementById("peek2").addEventListener("click", function () { openBehind("model"); });
     finale.scrollTop = 0;
   }, reduceMotion ? 0 : 1800);

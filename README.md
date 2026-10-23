@@ -10,12 +10,20 @@ Plain HTML, CSS and JavaScript. No install. Double-click `index.html` (best at p
 3. **Reveal:** your answer next to what your agent did last week, and whether that skill is **still strong** or **starting to fade**.
 4. **Not how you'd do it?** One tap: "✋ Tell my agent: I'd pay a bit more for things that last."
 5. **Town hall:** how many of your skills still feel like yours, one small step for each fading skill, what you told your agent, and what you got from the walk.
-6. **Next Sunday:** a new town with a different number of stops and different skills.
+6. **Next Sunday:** the town hall lists the 6 skills your cat checks next week.
 
-## Skills checked (all 13 across two weeks)
-| Week 1 (4 to 10 March) | Week 2 (11 to 17 March) |
-|---|---|
-| Judging value · Making decisions · Memory · Knowing where money goes · Questioning · Personal effort in relationships · Knowing what I like | Bargaining and speaking up · Handling problems · Trying new things · Daily life skills · Thinking through problems · Talking to strangers |
+## Skills checked (7 of 13 this week)
+| Group | Skill | Question |
+|---|---|---|
+| Self | Handling problems | Your flight is cancelled and your agent is offline. What's your first move? |
+| Thinking | Making decisions | When two options are close, how do you usually decide? |
+| Thinking | Questioning | A vendor is ₹40,000 cheaper. What would you ask first? |
+| Thinking | Memory | Without checking your phone: when is Mom's birthday? |
+| Doing | Bargaining and speaking up | A seller asks more than the usual price. What do you do? |
+| People | Personal effort in relationships | When did you last write to a close friend yourself? |
+| Money | Knowing where money goes | Roughly how much did you spend on food last week? |
+
+Next Sunday: Thinking through problems, Daily life skills, Judging value, Knowing what I like, Trying new things, Talking to strangers.
 
 ## Behind the town
 Tap **Behind the town** (top right) to see:
@@ -23,9 +31,9 @@ Tap **Behind the town** (top right) to see:
 - **Model instructions:** what we tell the AI model that builds the questions. You can edit and save them, like project instructions. A sample of what it sends back is shown below.
 
 ## What is simulated
-Two sample weeks stand in for the AI agent. In the real product, an AI model with no memory builds each week's town from the agent's data.
+One sample week stands in for the AI agent. In the real product, an AI model with no memory builds each week's town from the agent's data.
 
-The two weeks are fixed sample data in `data.js`, so every visitor sees the same clear story.
+The week is fixed sample data in `data.js`, so every visitor sees the same clear story.
 
 ## Credits
 3D icons: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft, MIT License (see `icons-LICENSE.txt`). Cat: [oneko.js](https://github.com/adryd325/oneko.js) by adryd, MIT License (see `oneko-LICENSE.txt`).

@@ -216,3 +216,4 @@ pre { margin: 0; background: #eef1f3; border: 1px solid var(--line); border-radi
 .eacts { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); }
 .btn.small { margin: 0; padding: 10px 14px; font-size: 0.85rem; }
 .note { color: var(--muted); font-size: 0.82rem; margin: 8px 2px 0; }
+.chiplist li .ic { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
