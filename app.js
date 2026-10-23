@@ -254,7 +254,8 @@ function ask(i) {
     st.options.map(function (o) { return '<button class="opt" data-k="' + o.k + '">' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
     '<form class="own" id="own" hidden><label for="ownin">What matters most to you here?</label>' +
-    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>');
+    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div>' +
+    '<button class="back" type="button" id="ownback">← Back to options</button></form>');
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
     b.addEventListener("click", function () { answer(i, b.getAttribute("data-k")); });
   });
@@ -262,6 +263,9 @@ function ask(i) {
   var form = document.getElementById("own"), input = document.getElementById("ownin");
   document.getElementById("other").addEventListener("click", function () {
     document.getElementById("opts").hidden = true; form.hidden = false; input.focus(); keepCatVisible();
+  });
+  document.getElementById("ownback").addEventListener("click", function () {
+    form.hidden = true; document.getElementById("opts").hidden = false; keepCatVisible();
   });
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -293,7 +297,14 @@ function answer(i, key, own) {
     : "";
   var last = i === game.week.stops.length - 1;
   openSheet(place(st, i) + compare + verdict + fix +
-    '<button class="btn" id="on">' + (last ? "Walk to the town hall" : "Keep walking") + "</button>");
+    '<button class="btn" id="on">' + (last ? "Walk to the town hall" : "Keep walking") + "</button>" +
+    '<button class="back" id="redo">← Change my answer</button>');
+  document.getElementById("redo").addEventListener("click", function () {
+    game.results[i] = null;
+    el.classList.remove("strong", "fading");
+    el.querySelector(".badge").innerHTML = "";
+    ask(i);
+  });
   var fb = document.getElementById("fix");
   if (fb) fb.addEventListener("click", function () {
     game.results[i].fixed = o.fixed;
