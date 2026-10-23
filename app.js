@@ -203,31 +203,100 @@ var game;
 function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function pct(v, total) { return (v / total * 100) + "%"; }
 
-/* ---------- The cat (oneko sprite sheet, 32 px frames) ---------- */
+/* ---------- The walker: a little pixel man, drawn in code (16 x 16 pixels per frame) ---------- */
+var COLORS = { H: "#4b3a2f", S: "#e3b48e", K: "#3a3330", T: "#5f7f99", P: "#55606b", B: "#3d3a38" };
+var E = "................";
+var HEAD = {
+  front: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", ".....SKSSKS.....", ".....SSSSSS.....", "......SSSS......"],
+  blink: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", ".....SSSSSS.....", ".....SSSSSS.....", "......SSSS......"],
+  back:  [E, "......HHHH......", ".....HHHHHH.....", ".....HHHHHH.....", ".....HHHHHH.....", ".....SHHHHS.....", "......SSSS......"],
+  side:  [E, "......HHHH......", ".....HHHHHH.....", ".....HHHSSS.....", ".....HHSSKS.....", ".....HSSSSS.....", "......SSSS......"]
+};
+var BODY = {
+  front:  [".....TTTTTT.....", "....TTTTTTTT....", "....TTTTTTTT....", "....STTTTTTS...."],
+  swingA: [".....TTTTTT.....", "....TTTTTTTT....", "...STTTTTTTT....", "....TTTTTTTS...."],
+  swingB: [".....TTTTTT.....", "....TTTTTTTT....", "....TTTTTTTTS...", "....STTTTTTT...."],
+  side:   ["......TTTT......", ".....TTTTTT.....", ".....TTTTTT.....", "......TTTS......"],
+  sideA:  ["......TTTT......", ".....TTTTTTT....", "....TTTTTTTS....", "...S..TTTT......"]
+};
+var LEGS = {
+  stand: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", ".....PP..PP.....", "....BBB..BBB...."],
+  stepA: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", ".....PP..BBB....", "....BBB........."],
+  stepB: [".....PPPPPP.....", ".....PP..PP.....", ".....PP..PP.....", "....BBB..PP.....", ".........BBB...."],
+  side:  ["......PPPP......", "......PPPP......", ".......PP.......", ".......PP.......", ".......BBB......"],
+  sideA: ["......PPPP......", "......PP.PP.....", ".....PP...PP....", ".....PP...PP....", "....BB....BBB..."],
+  sit:   ["...PPPPPPPPPP...", "...PPPPPPPPPP...", "..BB........BB.."]
+};
+var FRAMES = {
+  stand:  HEAD.front.concat(BODY.front, LEGS.stand),
+  blink:  HEAD.blink.concat(BODY.front, LEGS.stand),
+  downA:  HEAD.front.concat(BODY.swingA, LEGS.stepA),
+  downB:  HEAD.front.concat(BODY.swingB, LEGS.stepB),
+  upA:    HEAD.back.concat(BODY.swingA, LEGS.stepA),
+  upB:    HEAD.back.concat(BODY.swingB, LEGS.stepB),
+  up:     HEAD.back.concat(BODY.front, LEGS.stand),
+  side:   HEAD.side.concat(BODY.side, LEGS.side),
+  sideA:  HEAD.side.concat(BODY.sideA, LEGS.sideA),
+  // Arms up: waking up and stretching, or happy at the town hall
+  stretch: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH.....", "..S..SKSSKS..S..", "..T..SSSSSS..T..", "..T...SSSS...T..",
+            "..TTTTTTTTTTTT..", ".....TTTTTT.....", ".....TTTTTT.....", ".....TTTTTT....."].concat(LEGS.stand),
+  // Waving while you answer
+  wave1: [E, "......HHHH......", ".....HHHHHH.....", ".....HSSSSH..S..", ".....SKSSKS..T..", ".....SSSSSS..T..", "......SSSS..T...",
+          ".....TTTTTTTT...", "....TTTTTTT.....", "....TTTTTTT.....", "....STTTTTT....."].concat(LEGS.stand),
+  wave2: [E, "......HHHH......", ".....HHHHHH....S", ".....HSSSSH...T.", ".....SKSSKS..T..", ".....SSSSSS..T..", "......SSSS..T...",
+          ".....TTTTTTTT...", "....TTTTTTT.....", "....TTTTTTT.....", "....STTTTTT....."].concat(LEGS.stand),
+  // Napping, sitting cross-legged, with a slow breath
+  nap1: [E, E].concat(HEAD.blink, BODY.front, LEGS.sit),
+  nap2: [E, E, E].concat(HEAD.blink, BODY.front.slice(1), LEGS.sit)
+};
+
+// Paint every frame (and a mirrored copy for walking left) into one sprite sheet
+var SHEET = {}, sheetURL = (function () {
+  var names = Object.keys(FRAMES), all = names.concat(["side", "sideA"].map(function (n) { return n + "L"; }));
+  var c = document.createElement("canvas");
+  c.width = all.length * 32; c.height = 32;
+  var g = c.getContext("2d");
+  all.forEach(function (name, i) {
+    var left = /L$/.test(name), rows = FRAMES[left ? name.slice(0, -1) : name];
+    SHEET[name] = i;
+    rows.forEach(function (row, y) {
+      for (var x = 0; x < 16; x++) {
+        var ch = row[x];
+        if (!COLORS[ch]) continue;
+        g.fillStyle = COLORS[ch];
+        g.fillRect(i * 32 + (left ? 15 - x : x) * 2, y * 2, 2, 2);
+      }
+    });
+  });
+  return c.toDataURL();
+})();
+
 var SPRITES = {
-  idle: [[-3, -3]], alert: [[-7, -3]], tired: [[-3, -2]],
-  sleeping: [[-2, 0], [-2, -1]], scratch: [[-5, 0], [-6, 0], [-7, 0]],
-  N: [[-1, -2], [-1, -3]], NE: [[0, -2], [0, -3]], E: [[-3, 0], [-3, -1]], SE: [[-5, -1], [-5, -2]],
-  S: [[-6, -3], [-7, -2]], SW: [[-5, -3], [-6, -1]], W: [[-4, -2], [-4, -3]], NW: [[-1, 0], [-1, -1]]
+  idle: ["stand"], blink: ["blink"], alert: ["stretch"], tired: ["stretch"],
+  sleeping: ["nap1", "nap2"], scratch: ["wave1", "wave2"],
+  S: ["downA", "stand", "downB", "stand"], N: ["upA", "up", "upB", "up"],
+  E: ["sideA", "side"], NE: ["sideA", "side"], SE: ["sideA", "side"],
+  W: ["sideAL", "sideL"], NW: ["sideAL", "sideL"], SW: ["sideAL", "sideL"]
 };
 var cat = { mode: "sleeping", frame: 0, idleTicks: 0 };
 
 function setSprite(name, frame) {
   var el = document.getElementById("cat-sprite");
   if (!el) return;
-  var set = SPRITES[name], f = set[frame % set.length];
-  el.style.backgroundPosition = (f[0] * 32) + "px " + (f[1] * 32) + "px";
+  var set = SPRITES[name];
+  if (!el.style.backgroundImage) el.style.backgroundImage = "url(" + sheetURL + ")";
+  el.style.backgroundPosition = (-SHEET[set[frame % set.length]] * 32) + "px 0";
 }
 
-// 10 frames a second, like the original
+// 10 frames a second
 setInterval(function () {
   cat.frame++;
   if (cat.mode === "idle") {
     cat.idleTicks++;
-    var t = cat.idleTicks % 60; // scratches now and then while you answer
-    setSprite(t > 40 && t < 52 ? "scratch" : "idle", cat.frame);
+    var t = cat.idleTicks % 60; // blinks, and waves now and then while you answer
+    setSprite(t > 40 && t < 52 ? "scratch" : t === 20 || t === 21 ? "blink" : "idle", Math.floor(cat.frame / 3));
   } else if (cat.mode === "sleeping") {
-    setSprite("sleeping", Math.floor(cat.frame / 4));
+    setSprite("sleeping", Math.floor(cat.frame / 8));
   } else {
     setSprite(cat.mode, cat.frame);
   }
@@ -326,7 +395,7 @@ function walk(fromIdx, toIdx, done) {
 
 function follow(y, instant) {
   var rect = mapEl.getBoundingClientRect();
-  var target = window.scrollY + rect.top + rect.height * (y / game.L.H) - window.innerHeight * 0.34;
+  var target = window.scrollY + rect.top + rect.height * (y / game.L.H) - window.innerHeight * 0.28;
   window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
 }
 

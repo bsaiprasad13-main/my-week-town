@@ -62,7 +62,7 @@ p { margin: 0 0 10px; }
 
 /* The cat */
 .cat { position: absolute; z-index: 6; width: 32px; height: 32px; transform: translate(-50%, -100%); pointer-events: none; }
-.cat-sprite { width: 32px; height: 32px; background-image: url("oneko.gif"); background-repeat: no-repeat; image-rendering: pixelated; transform: scale(1.7); transform-origin: 50% 100%; }
+.cat-sprite { width: 32px; height: 32px; background-image: none; background-repeat: no-repeat; image-rendering: pixelated; transform: scale(1.7); transform-origin: 50% 100%; }
 .cat::after { content: ""; position: absolute; left: 50%; bottom: -3px; width: 30px; height: 7px; margin-left: -15px; border-radius: 50%; background: rgba(60, 70, 60, 0.16); z-index: -1; }
 .zz { position: absolute; left: 46px; top: -6px; font-size: 0.8rem; font-weight: 800; color: var(--muted); opacity: 0; }
 .zz.on { animation: zz 2.4s ease-in-out infinite; }
