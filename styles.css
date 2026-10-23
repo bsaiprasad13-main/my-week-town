@@ -20,6 +20,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { background: #e7ede4; }
 body {
   margin: 0; color: var(--text); font: 15.5px/1.55 "Plus Jakarta Sans", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -243,3 +244,11 @@ pre { margin: 0; background: #eef1f3; border: 1px solid var(--line); border-radi
 .pt .ok .m { color: var(--ok-text); }
 .pt .fade .m { color: var(--fade-text); }
 .skills .ok .tag { background: var(--ok-bg); color: var(--ok-text); }
+
+/* Something else: your own priority */
+.opts.grid2 .other { grid-column: span 2; display: flex; align-items: center; justify-content: center; gap: 6px; border-style: dashed; color: var(--muted); background: transparent; }
+.opts.grid2 .other .ic { width: 20px; height: 20px; }
+.own label { display: block; font-weight: 700; margin: 4px 0 8px; }
+.ownrow { display: flex; gap: 8px; }
+.ownrow input { flex: 1; min-width: 0; border: 1px solid var(--accent); border-radius: 14px; padding: 12px 14px; font: inherit; color: var(--text); background: #fff; outline: none; box-shadow: 0 0 0 4px var(--accent-soft); }
+.ownrow .btn { width: auto; flex: none; }

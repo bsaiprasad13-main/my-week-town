@@ -1,29 +1,25 @@
 # My Week Town (prototype)
 
-It's 2040. Your AI agent does almost everything for you. Every Sunday, last week becomes a little town, and a pixel cat walks you to each choice your agent made. At each stop you check two things:
-
-1. **Does your agent still choose like you?** Your priority vs your agent's priority.
-2. **Do you still remember your own week?**
+It's 2040. Your AI agent does almost everything for you. Every Sunday, last week becomes a little town, and a pixel cat walks you to each choice your agent made. At each stop you check one thing: **does your agent still choose like you?** Your priority vs your agent's priority.
 
 Plain HTML, CSS and JavaScript. No install. Double-click `index.html` (best at phone width).
 
 ## The journey
-1. **Start:** "Last week, your agent did 43 things for you. 7 of them were choices about your life." Tap **Wake up the cat**.
-2. **Priority stop:** one line, such as "Buying a TV, what matters most to you?", with 4 priorities to pick from.
+1. **Start:** "Last week, your agent did 43 things for you. 5 of them were choices about your life." Tap **Wake up the cat**.
+2. **Priority stop:** one line, such as "Buying a TV, what matters most to you?", with 4 priorities to pick from, or **Something else** to type your own.
 3. **Reveal:** your priority next to your agent's priority, and what it did last week. If they differ: **✋ Tell my agent: For TVs, picture quality comes first.**
-4. **Memory stop:** "Without checking: when is Mom's birthday?" Then the answer from last week's log.
-5. **Town hall:** "3 of 5 choices made your way", a table of your priorities vs your agent's, what you remembered, and what you told your agent.
+4. **Town hall:** "3 of 5 choices made your way", a table of your priorities vs your agent's, and what you told your agent.
 
-## The 7 stops
-| # | Type | Question | Agent's priority |
-|---|---|---|---|
-| 1 | Priority | Buying a TV, what matters most to you? | Price |
-| 2 | Priority | Flight cancelled. What matters most in the new booking? | Pay less |
-| 3 | Priority | Choosing a sofa, what matters most? | Price |
-| 4 | Priority | Picking a birthday gift for your best friend, what matters most? | Arrives on time |
-| 5 | Memory | Without checking: when is Mom's birthday? | (8 March) |
-| 6 | Memory | Without checking: whose birthday wish did your agent send last week? | (Arjun) |
-| 7 | Priority | Ordering dinner after a long day, what matters most? | Fast |
+## The 5 stops
+| # | Question | Agent's priority |
+|---|---|---|
+| 1 | Buying a TV, what matters most to you? | Price |
+| 2 | Flight cancelled. What matters most in the new booking? | Pay less |
+| 3 | Choosing a sofa, what matters most? | Price |
+| 4 | Picking a birthday gift for your best friend, what matters most? | Arrives on time |
+| 5 | Ordering dinner after a long day, what matters most? | Fast |
+
+Every question also has **Something else**, so you can type your own priority.
 
 ## Behind the town
 Tap **Behind the town** (top right) to see:
