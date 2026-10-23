@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Week Town</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand" id="go-home" type="button">🏘️ My Week Town</button>
+    <div class="week-label" id="week-label"></div>
+    <nav class="topnav">
+      <button type="button" id="go-progress">Progress</button>
+      <button type="button" id="go-settings">Settings</button>
+    </nav>
+  </header>
+
+  <div class="demo-bar">
+    <span>Prototype demo · sample data for 4 weeks of 2040</span>
+    <span class="demo-actions">
+      <button type="button" id="next-week">Next week ▸</button>
+      <button type="button" id="reset-demo" class="link">Reset demo</button>
+    </span>
+  </div>
+
+  <main id="screen" aria-live="polite"></main>
+
+  <script src="js/data/reasons.js"></script>
+  <script src="js/data/sample-weeks.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/townBuilder.js"></script>
+  <script src="js/scoring.js"></script>
+  <script src="js/metrics.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/report.js"></script>
+  <script src="js/repair.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
