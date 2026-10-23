@@ -25,7 +25,7 @@ MWT.defaultSettings = function () {
 };
 
 MWT.storage = (function () {
-  var KEY = "my-week-town-v1";
+  var KEY = "my-week-town-v2";
   var memory = null;
 
   function fresh() {

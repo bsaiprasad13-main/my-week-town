@@ -1,5 +1,6 @@
 // Scoring Engine: compares my answer with the real reason.
-// Results: "lit" (same reason) · "cracked" (different reason) · "fog" (don't know) · "skipped"
+// Answers: { picked: reasonKey } · { other: "my own words" } · { notSure: true }
+// Results: "lit" (same reason) · "cracked" (different reason) · "fog" (not sure)
 window.MWT = window.MWT || {};
 
 MWT.scoring = (function () {
@@ -9,49 +10,33 @@ MWT.scoring = (function () {
   function reasonsIn(text) {
     var t = norm(text), found = [];
     Object.keys(MWT.REASONS).forEach(function (k) {
-      var r = MWT.REASONS[k];
-      var hit = r.synonyms.some(function (s) { return t.indexOf(s) !== -1; });
-      if (hit) found.push(k);
+      if (MWT.REASONS[k].synonyms.some(function (s) { return t.indexOf(s) !== -1; })) found.push(k);
     });
     return found;
   }
 
-  function isDontKnow(text) {
+  function isNotSure(text) {
     var t = norm(text);
     return t === "" || /(don'?t know|dont know|not sure|no idea|idk)/.test(t);
   }
 
   function score(building, decision, answer) {
-    if (answer.skipped) return { result: "skipped", ownPass: false };
     var real = decision.realReasons;
+    if (answer.notSure) return { result: "fog" };
 
-    if (building.challenge === "pick") {
-      if (answer.picked === "dont_know") return { result: "fog" };
+    if (answer.picked) {
       return { result: real.indexOf(answer.picked) !== -1 ? "lit" : "cracked", myReasonKey: answer.picked };
     }
 
-    if (building.challenge === "fake") {
-      if (answer.picked === "dont_know") return { result: "fog" };
-      return { result: answer.picked === building.fakeKey ? "lit" : "cracked" };
-    }
-
-    if (building.challenge === "whatif") {
-      if (answer.picked === "notsure") return { result: "fog" };
-      var isMain = real[0] === decision.whatIfFactor;
-      var knewIt = isMain ? answer.picked === "no" : answer.picked === "yes";
-      return { result: knewIt ? "lit" : "cracked" };
-    }
-
-    // In my own words
-    var why = answer.text || "";
-    var named = (answer.notPicked || "").trim().length >= 2;
-    if (isDontKnow(why)) return { result: "fog", ownPass: false };
-    var mine = reasonsIn(why);
-    var matched = mine.some(function (k) { return real.indexOf(k) !== -1; });
-    if (matched) return { result: "lit", ownPass: named, myReasonKey: mine[0] };
-    var words = norm(why).split(/\s+/).filter(Boolean).length;
-    if (words >= 2) return { result: "cracked", ownPass: named, myReasonKey: mine[0] || null };
-    return { result: "fog", ownPass: false };
+    // "Other": my own words
+    var text = answer.other || "";
+    if (isNotSure(text)) return { result: "fog" };
+    var mine = reasonsIn(text);
+    var words = norm(text).split(/\s+/).filter(Boolean).length;
+    var gaveReason = words >= 2 || mine.length > 0;
+    if (mine.some(function (k) { return real.indexOf(k) !== -1; })) return { result: "lit", ownPass: true, myReasonKey: mine[0] };
+    if (gaveReason) return { result: "cracked", ownPass: true, myReasonKey: mine[0] || null };
+    return { result: "fog" };
   }
 
   // Gap report: passed into NEXT week's Town Builder (the builder itself remembers nothing).
@@ -59,12 +44,9 @@ MWT.scoring = (function () {
     var byArea = {}, gapReasonKeys = [];
     town.buildings.forEach(function (b) {
       var a = byArea[b.area] || (byArea[b.area] = { buildings: 0, lit: 0, cracked: 0, fog: 0 });
-      var ans = answers[b.id];
-      var res = ans ? ans.result : "skipped";
+      var res = answers[b.id] ? answers[b.id].result : "fog";
       a.buildings++;
-      if (res === "lit") a.lit++;
-      else if (res === "cracked") a.cracked++;
-      else a.fog++; // fog and skipped both mean "not aware"
+      a[res]++;
       if (res !== "lit") {
         var k = decisionsById[b.decisionId].realReasons[0];
         if (gapReasonKeys.indexOf(k) === -1) gapReasonKeys.push(k);

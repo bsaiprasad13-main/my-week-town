@@ -91,3 +91,15 @@ MWT.SAMPLE_WEEKS = [
     ]
   }
 ];
+
+// Short names shown under each building on the map
+MWT.SHORT_NAMES = {
+  "w10-d1": "Coorg trip", "w10-d2": "Health insurance", "w10-d3": "New phone", "w10-d4": "Vendor B",
+  "w10-d5": "Team lead pick", "w10-d6": "Science fair", "w10-d7": "Birthday watch", "w10-d8": "Meal plan",
+  "w11-d1": "New sofa", "w11-d2": "Savings fund", "w11-d3": "Headphones", "w11-d4": "Courier partner",
+  "w11-d5": "Offsite day", "w11-d6": "Family car", "w11-d7": "Art classes",
+  "w12-d1": "Washing machine", "w12-d2": "Diwali flights", "w12-d3": "Gym", "w12-d4": "Project tool",
+  "w12-d5": "Vendor A contract", "w12-d6": "Lake picnic", "w12-d7": "School shoes",
+  "w13-d1": "New TV", "w13-d2": "Car loan", "w13-d3": "Plant service", "w13-d4": "Freelancer",
+  "w13-d5": "Report format", "w13-d6": "Mom's birthday dinner", "w13-d7": "Riya's bicycle"
+};

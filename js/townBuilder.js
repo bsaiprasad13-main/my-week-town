@@ -52,10 +52,6 @@ MWT.townBuilder = (function () {
     var a = gap && gap.byArea && gap.byArea[area];
     return !!(a && (a.cracked + a.fog) > 0);
   }
-  function areaWasStrong(gap, area) {
-    var a = gap && gap.byArea && gap.byArea[area];
-    return !!(a && a.buildings > 0 && a.lit === a.buildings);
-  }
 
   // Step 2: priority score
   function priority(d, gap) {
@@ -87,25 +83,11 @@ MWT.townBuilder = (function () {
     return out;
   }
 
-  // Step 7: options for each challenge
+  // Step 7: options. One question type for every building:
+  // 3 reasons (1 real + 2 believable wrong ones, shuffled), then "Other" and "Not sure" in the screen.
   function buildOptions(b, d, prefs, rand) {
-    if (b.challenge === "pick") {
-      var opts = [d.realReasons[0]].concat(wrongReasons(d, prefs, 2, rand));
-      b.options = shuffle(opts, rand).map(function (k) { return { key: k, text: MWT.reasonLabel(k) }; })
-        .concat([{ key: "dont_know", text: "I don't know" }]);
-    } else if (b.challenge === "fake") {
-      var truths = d.realReasons.slice(0, 2).map(function (k) { return { key: "true_" + k, text: MWT.reasonLabel(k) }; });
-      if (truths.length < 2 && d.rejectedOptions.length) truths.push({ key: "true_rejected", text: "It was picked over " + d.rejectedOptions[0] });
-      var fakeKey = wrongReasons(d, prefs, 1, rand)[0];
-      b.fakeKey = "fake_" + fakeKey;
-      b.options = shuffle(truths.concat([{ key: b.fakeKey, text: MWT.reasonLabel(fakeKey) }]), rand)
-        .concat([{ key: "dont_know", text: "I don't know" }]);
-    } else if (b.challenge === "whatif") {
-      b.whatIfText = MWT.reasonLabel(d.whatIfFactor);
-      b.options = [{ key: "yes", text: "Yes, I'd still choose it" }, { key: "no", text: "No, I wouldn't" }, { key: "notsure", text: "Not sure" }];
-    } else {
-      b.options = [];
-    }
+    var opts = [d.realReasons[0]].concat(wrongReasons(d, prefs, 2, rand));
+    b.options = shuffle(opts, rand).map(function (k) { return { key: k, text: MWT.reasonLabel(k) }; });
   }
 
   function buildTown(week, gap, settings) {
@@ -126,24 +108,13 @@ MWT.townBuilder = (function () {
     ranked.forEach(function (x) { if (picked.length < max && picked.indexOf(x) === -1) picked.push(x); });
     picked.sort(function (a, b) { return (b.p - a.p) || (b.d.amount - a.d.amount); });
 
-    // Step 6: challenges (exactly one own-words, max 3 of any type)
-    var counts = { pick: 0, fake: 0, whatif: 0, ownwords: 0 };
+    // Step 6: one building per picked choice
     var buildings = picked.map(function (x, i) {
-      var d = x.d, want;
-      if (i === 0) want = "ownwords";
-      else if (d.whatIfFactor && d.realReasons.length) want = "whatif";
-      else if (areaWasStrong(gap, d.area)) want = "fake";
-      else want = "pick";
-      if (want !== "ownwords" && counts[want] >= 3) {
-        want = ["pick", "fake", "whatif"].filter(function (c) {
-          return counts[c] < 3 && (c !== "whatif" || d.whatIfFactor);
-        })[0] || "pick";
-      }
-      counts[want]++;
+      var d = x.d;
       var b = {
         id: "b" + (i + 1), decisionId: d.id, area: d.area, size: sizeOf(d),
         character: MWT.CHARACTERS[d.area] || MWT.CHARACTERS.self,
-        challenge: want, prompt: d.question, priority: x.p
+        prompt: d.question, priority: x.p
       };
       buildOptions(b, d, week.myPreferences || [], rand);
       return b;

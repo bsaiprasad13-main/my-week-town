@@ -36,10 +36,9 @@ MWT.metrics = (function () {
     out.reasonMatch = ratio(lit, answered);
     out.skipRate = ratio(skipped, town.buildings.length);
 
-    // Own-Words Score (one building per week)
-    var own = town.buildings.filter(function (b) { return b.challenge === "ownwords"; })[0];
-    var ownAns = own && ans[own.id];
-    out.ownWords = ownAns && !ownAns.skipped ? (ownAns.ownPass ? 1 : 0) : null;
+    // Own-Words Score: answers typed in "Other" that give a real reason
+    var typed = town.buildings.map(function (b) { return ans[b.id]; }).filter(function (a) { return a && a.other !== undefined; });
+    out.ownWords = typed.length ? typed.filter(function (a) { return a.ownPass; }).length / typed.length : null;
 
     // North star estimate: weight each area by its real share of important choices
     var areaRate = {}, sum = 0, weight = 0;

@@ -1,56 +1,32 @@
-// Settings: editable instructions, "important" rules, private areas, repairs to agent.
+// Settings: kept short. Private areas, sharing with the agent, and the builder's instructions.
 window.MWT = window.MWT || {};
 
 MWT.settingsScreen = (function () {
   var esc = MWT.esc;
 
-  function checks(name, selected) {
-    return MWT.AREAS.map(function (a) {
-      return '<label><input type="checkbox" name="' + name + '" value="' + a + '"' + (selected.indexOf(a) !== -1 ? " checked" : "") + "> " + MWT.AREA_NAMES[a] + "</label>";
-    }).join("");
-  }
-
   function render(el, ctx) {
     var s = ctx.settings;
-    el.innerHTML = '<div class="card"><h1>Settings</h1>' +
-      '<label class="field" for="ins">Instructions the town builder follows</label>' +
-      '<textarea id="ins" rows="8">' + esc(s.instructions) + "</textarea>" +
-      '<p class="note">In 2040 an AI model with no memory reads these instructions every week. In this prototype, the same rules run as code, and the settings below control them.</p>' +
-      '<button type="button" class="btn secondary" id="ins-reset">Reset instructions</button>' +
+    var areas = ["work", "money", "family", "self"].map(function (a) {
+      return '<label><input type="checkbox" name="priv" value="' + a + '"' + (s.privateAreas.indexOf(a) !== -1 ? " checked" : "") + "> " + MWT.AREA_NAMES[a] + "</label>";
+    }).join("");
+    el.innerHTML = '<button class="back" data-go="map">← Map</button><div class="card"><h1>Settings</h1>' +
+      '<h3>Keep private</h3><p class="muted small">These parts of your life are never used in the town.</p><div class="checks">' + areas + "</div>" +
+      '<h3 style="margin-top:16px">Tell my agent?</h3><label class="checks"><input type="checkbox" id="send"' + (s.sendRepairsToAgent ? " checked" : "") +
+      "> When I say “that's not my reason”, tell my agent</label>" +
+      '<p class="muted small">Off by default. The point is for you to understand yourself, not to train your agent.</p>' +
+      '<details style="margin-top:12px"><summary>Instructions for the town builder</summary>' +
+      '<p class="note">In 2040 an AI with no memory reads these every week to build your town. In this prototype the same rules run as code.</p>' +
+      '<textarea id="ins" rows="8">' + esc(s.instructions) + "</textarea></details>" +
+      '<div class="row" style="margin-top:16px"><button class="btn" id="save">Save</button><span id="saved" class="done-tag"></span></div>' +
+      '<p class="muted small">Changes apply from the next town you open. Your data stays on this device.</p></div>';
 
-      '<label class="field" for="min">A choice is important if it costs at least (₹)</label><input id="min" type="number" min="0" step="500" value="' + s.minAmount + '">' +
-      '<p class="small muted">…or affects other people, or is in one of these areas:</p><div class="checks" id="care">' + checks("care", s.careAreas) + "</div>" +
-
-      '<label class="field">Private areas (never used in the game)</label><div class="checks" id="priv">' + checks("priv", s.privateAreas) + "</div>" +
-
-      '<label class="field" for="max">Buildings per week (max)</label><select id="max">' +
-      [5, 6, 7].map(function (n) { return '<option value="' + n + '"' + (s.buildingsMax === n ? " selected" : "") + ">" + n + "</option>"; }).join("") + "</select>" +
-
-      '<label class="field"><input type="checkbox" id="send"' + (s.sendRepairsToAgent ? " checked" : "") + "> Send corrected reasons to my agent</label>" +
-      '<p class="small muted">Off by default. The goal is you understanding yourself, not making your agent more accurate.</p>' +
-
-      '<div class="row" style="margin-top:16px"><button class="btn" id="save">Save settings</button><span id="saved" class="done-tag"></span></div>' +
-      '<p class="note" style="margin-top:12px">Changes apply to towns built from now on. A town you have started stays the same.</p></div>' +
-
-      '<div class="card"><h3>Your data</h3><p class="muted small">Everything is stored only on this device.</p>' +
-      '<button class="btn secondary" id="wipe">Delete all my data</button></div>';
-
-    el.querySelector("#ins-reset").addEventListener("click", function () { el.querySelector("#ins").value = MWT.DEFAULT_INSTRUCTIONS; });
     el.querySelector("#save").addEventListener("click", function () {
-      function vals(name) { return Array.prototype.map.call(el.querySelectorAll('input[name="' + name + '"]:checked'), function (i) { return i.value; }); }
-      var min = parseInt(el.querySelector("#min").value, 10);
       MWT.app.saveSettings({
-        instructions: el.querySelector("#ins").value.trim() || MWT.DEFAULT_INSTRUCTIONS,
-        minAmount: isNaN(min) || min < 0 ? 5000 : min,
-        careAreas: vals("care"),
-        privateAreas: vals("priv"),
-        buildingsMax: Math.max(5, Math.min(7, parseInt(el.querySelector("#max").value, 10) || 7)),
-        sendRepairsToAgent: el.querySelector("#send").checked
+        privateAreas: Array.prototype.map.call(el.querySelectorAll('input[name="priv"]:checked'), function (i) { return i.value; }),
+        sendRepairsToAgent: el.querySelector("#send").checked,
+        instructions: el.querySelector("#ins").value.trim() || MWT.DEFAULT_INSTRUCTIONS
       });
       el.querySelector("#saved").textContent = "✔ Saved";
-    });
-    el.querySelector("#wipe").addEventListener("click", function () {
-      if (window.confirm("Delete all your town data on this device?")) MWT.app.resetAll();
     });
   }
 
