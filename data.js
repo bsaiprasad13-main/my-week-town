@@ -1,118 +1,75 @@
 // My Week Town: fixed sample data.
-// Each Sunday the town is built from LAST week's log from your agent.
-// Every stop asks one direct question that checks one skill that fades when you rely fully on an agent.
+// Every Sunday the town is built from LAST week's log from your agent.
+// Two kinds of stops:
+//   priority: what matters most to YOU in this choice, checked against what mattered to your agent
+//   memory:   do you still remember your own week without your agent
 
-// The 13 skills that fade (from our analysis), in 5 groups
-var SKILLS = {
-  decisions:   { group: "Thinking", part: "brain",     name: "Making decisions" },
-  thinking:    { group: "Thinking", part: "thought",   name: "Thinking through problems" },
-  memory:      { group: "Thinking", part: "brain",     name: "Memory" },
-  questioning: { group: "Thinking", part: "search",    name: "Questioning" },
-  daily:       { group: "Doing",    part: "pan",       name: "Daily life skills" },
-  bargain:     { group: "Doing",    part: "speech",    name: "Bargaining and speaking up" },
-  money:       { group: "Money",    part: "money",     name: "Knowing where money goes" },
-  value:       { group: "Money",    part: "money",     name: "Judging value" },
-  taste:       { group: "Self",     part: "mirror",    name: "Knowing what I like" },
-  newthings:   { group: "Self",     part: "seedling",  name: "Trying new things" },
-  problems:    { group: "Self",     part: "tools",     name: "Handling problems" },
-  people:      { group: "People",   part: "handshake", name: "Personal effort in relationships" },
-  strangers:   { group: "People",   part: "compass",   name: "Talking to strangers" }
-};
-
-// Option: k = key, t = text, me = what it shows about you, fade = shows the skill fading,
-// fix = what you can tell your agent, fixed = what your agent will do next time.
-var FIX_BDAY = { fix: "Remind me a week early, I'll plan it", fixed: "It will remind you a week before, so you plan it yourself." };
-var FIX_SPEND = { fix: "Show me my spending every Sunday", fixed: "It will show you a one-line spending summary every Sunday." };
-// One sample week. Stops are in the order the cat walks them.
+// Priority option: k = key, t = text, fix = what you can tell your agent if it differs, fixed = what your agent will do next time.
 var WEEKS = [
   {
     label: "Sunday, 10 March 2040", period: "4 to 10 March", total: 43,
     stops: [
-      { icon: "plane", place: "Airport", skill: "problems",
-        question: "Your flight is cancelled and your agent is offline. What's your first move?",
-        reason: "On Tuesday your Delhi flight was cancelled. Your agent rebooked you on the cheapest seat left, the 2 pm flight.",
+      { kind: "priority", icon: "tv", place: "Electronics store", choice: "TV",
+        question: "Buying a TV, what matters most to you?",
+        agent: "price", did: "On Tuesday it bought a 55-inch TV for ₹45,000, the best deal it found.",
         options: [
-          { k: "desk", t: "Go to the airline desk", me: "Handling problems yourself",
-            fix: "When plans break, show me the options", fixed: "It will show you your options and let you choose." },
-          { k: "app", t: "Check the airline app myself", me: "Finding a fix yourself",
-            fix: "When plans break, show me the options", fixed: "It will show you your options and let you choose." },
-          { k: "wait", t: "Wait for my agent", fade: true },
-          { k: "idk", t: "I wouldn't know what to do", fade: true }
-        ],
-        tip: "Sort out one small problem this week without your agent." },
+          { k: "price", t: "Price" },
+          { k: "picture", t: "Picture quality", fix: "For TVs, picture quality comes first", fixed: "It will pick the best picture, not just the best deal." },
+          { k: "lasts", t: "Lasts long", fix: "For big buys, pick things that last", fixed: "It will weigh how long things last before the price." },
+          { k: "brand", t: "Brand", fix: "For electronics, pick brands I trust", fixed: "It will stick to brands you trust." }
+        ] },
 
-      { icon: "sofa", place: "Furniture market", skill: "decisions",
-        question: "When two options are close, how do you usually decide?",
-        reason: "Last week your agent picked your new sofa for you: the grey one on sale for ₹35,000.",
+      { kind: "priority", icon: "plane", place: "Airport", choice: "Flight",
+        question: "Flight cancelled. What matters most in the new booking?",
+        agent: "less", did: "On Tuesday it rebooked you on the cheapest seat left, the 2 pm flight.",
         options: [
-          { k: "weigh", t: "I weigh what matters and pick", me: "Deciding with a clear reason" },
-          { k: "gut", t: "I go with my gut", me: "Trusting your own judgement" },
-          { k: "agent", t: "I ask my agent to decide", fade: true,
-            fix: "Give me 2 options, I'll choose", fixed: "It will give you 2 options for big choices, and you'll choose." },
-          { k: "delay", t: "I keep putting it off", fade: true,
-            fix: "Give me 2 options, I'll choose", fixed: "It will give you 2 options for big choices, and you'll choose." }
-        ],
-        tip: "Make one choice this week without asking your agent first." },
+          { k: "early", t: "Reach early", fix: "When plans break, reaching early comes first", fixed: "It will book the earliest option, even if it costs more." },
+          { k: "less", t: "Pay less" },
+          { k: "comfort", t: "Comfort", fix: "On flights, comfort comes first", fixed: "It will pick comfortable seats and times." },
+          { k: "hassle", t: "Least hassle", fix: "When plans break, keep it simple for me", fixed: "It will pick the option with the fewest changes." }
+        ] },
 
-      { icon: "office", place: "Your office", skill: "questioning",
-        question: "A vendor is ₹40,000 cheaper. What would you ask first?",
-        reason: "On Thursday your agent signed Vendor B to save ₹40,000. It didn't ask that Vendor B missed 2 deadlines last year.",
+      { kind: "priority", icon: "sofa", place: "Furniture market", choice: "Sofa",
+        question: "Choosing a sofa, what matters most?",
+        agent: "price", did: "On Wednesday it ordered a grey sofa on sale for ₹35,000.",
         options: [
-          { k: "why", t: "Why are they so cheap?", me: "Asking what the catch is",
-            fix: "Show me the catch before picking cheaper", fixed: "It will tell you the catch before choosing a cheaper option." },
-          { k: "late", t: "Have they missed deadlines?", me: "Checking the risks first",
-            fix: "At work, check deadline risks before signing", fixed: "It will flag deadline risks to you before signing." },
-          { k: "none", t: "Nothing. Cheaper is better", fade: true,
-            fix: "Show me the catch before picking cheaper", fixed: "It will tell you the catch before choosing a cheaper option." },
-          { k: "agent", t: "I'd let my agent check", fade: true }
-        ],
-        tip: "When your agent says \"cheaper\", ask what the catch is." },
+          { k: "price", t: "Price" },
+          { k: "lasts", t: "Lasts long", fix: "For sofas, quality comes first", fixed: "It will check with you before choosing a sale over quality." },
+          { k: "looks", t: "Looks", fix: "For my home, how it looks comes first", fixed: "It will show you photos before ordering for your home." },
+          { k: "comfort", t: "Comfort", fix: "For furniture, comfort comes first", fixed: "It will pick comfort over the deal for furniture." }
+        ] },
 
-      { icon: "cake", place: "Mom's house", skill: "memory",
-        question: "Without checking your phone: when is Mom's birthday?",
-        reason: "Mom's birthday was on Friday, 8 March. Your agent reminded you that morning.",
+      { kind: "priority", icon: "gift", place: "Gift shop", choice: "Gift for Arjun",
+        question: "Picking a birthday gift for your best friend, what matters most?",
+        agent: "time", did: "On Thursday it ordered Arjun a ₹1,200 mug, because it would arrive on time.",
         options: [
-          { k: "8", t: "8 March", me: "You remember family dates" },
-          { k: "18", t: "18 March", fade: true, fix: FIX_BDAY.fix, fixed: FIX_BDAY.fixed },
-          { k: "28", t: "28 March", fade: true, fix: FIX_BDAY.fix, fixed: FIX_BDAY.fixed },
-          { k: "idk", t: "I don't remember", fade: true, fix: FIX_BDAY.fix, fixed: FIX_BDAY.fixed }
-        ],
-        tip: "Remember one birthday yourself, without your agent." },
+          { k: "personal", t: "Personal touch", fix: "For close friends, a personal gift comes first", fixed: "It will suggest personal gifts and let you pick." },
+          { k: "useful", t: "Useful", fix: "Pick gifts they'll actually use", fixed: "It will look for gifts your friends will use." },
+          { k: "price", t: "Price", fix: "Keep gifts within my budget", fixed: "It will stay within your gift budget." },
+          { k: "time", t: "Arrives on time" }
+        ] },
 
-      { icon: "lamp", place: "Craft market", skill: "bargain",
-        question: "A seller asks more than the usual price. What do you do?",
-        reason: "On Saturday your agent paid ₹2,400 for a lamp that usually sells for ₹1,600 to ₹2,000, to save your time.",
-        options: [
-          { k: "ask", t: "Ask for a lower price", me: "Speaking up for a fair price",
-            fix: "Let me make the offer on handmade things", fixed: "It will let you bargain next time." },
-          { k: "pay", t: "Pay it. I like supporting the maker", me: "Supporting small makers" },
-          { k: "shy", t: "Pay, because asking feels awkward", fade: true,
-            fix: "Let me try asking once next time", fixed: "It will step back and let you ask for the price yourself." },
-          { k: "agent", t: "Let my agent handle it", fade: true }
-        ],
-        tip: "Ask for a better price once this week, in person." },
+      { kind: "memory", icon: "cake", place: "Mom's house", choice: "Mom's birthday",
+        question: "Without checking: when is Mom's birthday?",
+        answer: "8", did: "Mom's birthday was on Friday, 8 March. Your agent reminded you that morning.",
+        fix: "Remind me a week early, I'll plan it", fixed: "It will remind you a week before, so you plan it yourself.",
+        options: [ { k: "8", t: "8 March" }, { k: "18", t: "18 March" }, { k: "28", t: "28 March" }, { k: "idk", t: "I don't remember" } ] },
 
-      { icon: "letter", place: "Post office", skill: "people",
-        question: "When did you last write to a close friend yourself?",
-        reason: "On Saturday your agent wrote and sent Arjun's birthday message at midnight.",
-        options: [
-          { k: "week", t: "This week", me: "Personal effort with friends" },
-          { k: "month", t: "This month", me: "Personal effort with friends" },
-          { k: "cant", t: "I can't remember", fade: true,
-            fix: "Remind me, I'll write to close friends", fixed: "It will remind you, and you'll write the message." }
-        ],
-        tip: "Write one message to a friend yourself this week." },
+      { kind: "memory", icon: "letter", place: "Post office", choice: "Birthday wish",
+        question: "Without checking: whose birthday wish did your agent send last week?",
+        answer: "arjun", did: "Your agent wrote and sent Arjun's birthday message at midnight on Saturday.",
+        fix: "Tell me before you send wishes for me", fixed: "It will remind you, and you'll write the message.",
+        options: [ { k: "arjun", t: "Arjun" }, { k: "rahul", t: "Rahul" }, { k: "priya", t: "Priya" }, { k: "idk", t: "I don't remember" } ] },
 
-      { icon: "bank", place: "Bank", skill: "money",
-        question: "Roughly how much did you spend on food last week?",
-        reason: "₹6,800 across 14 orders, most of them after 8 pm.",
+      { kind: "priority", icon: "takeout", place: "Food street", choice: "Late dinners",
+        question: "Ordering dinner after a long day, what matters most?",
+        agent: "fast", did: "It ordered dinner 11 times after 8 pm, always the fastest delivery.",
         options: [
-          { k: "low", t: "Under ₹2,000", fade: true, fix: FIX_SPEND.fix, fixed: FIX_SPEND.fixed },
-          { k: "mid", t: "₹2,000 to ₹5,000", fade: true, fix: FIX_SPEND.fix, fixed: FIX_SPEND.fixed },
-          { k: "high", t: "Over ₹5,000", me: "You know where your money goes" },
-          { k: "idk", t: "No idea", fade: true, fix: FIX_SPEND.fix, fixed: FIX_SPEND.fixed }
-        ],
-        tip: "Look at your week's spending for one minute every Sunday." }
+          { k: "healthy", t: "Healthy", fix: "For dinner, healthy comes first", fixed: "It will pick healthy meals, even if they take longer." },
+          { k: "fast", t: "Fast" },
+          { k: "cheap", t: "Cheap", fix: "For dinner, keep it cheap", fixed: "It will pick good-value meals over the fastest ones." },
+          { k: "taste", t: "Taste", fix: "For dinner, taste comes first", fixed: "It will pick your favourite places over the fastest ones." }
+        ] }
     ]
   }
 ];
@@ -120,19 +77,19 @@ var WEEKS = [
 // What your agent shared about LAST week. stop = which stop it became. skip = why our model left it out.
 WEEKS[0].log = [
   { day: "Mon", area: "Bills", icon: "bank", did: "Paid the electricity bill, ₹2,140", skip: "Routine. Same as every month." },
-  { day: "Tue", area: "Travel", icon: "plane", did: "Rebooked your cancelled 7 am Delhi flight to 2 pm, ₹5,400", looked: "9:30 am flight, ₹8,900", why: "Cheapest seat left", stop: 0 },
-  { day: "Tue", area: "Shopping", icon: "tv", did: "Bought a 55-inch TV for ₹45,000", looked: "65-inch for ₹58,000 · OLED 55-inch for ₹62,000", why: "Best deal: ₹6,000 below the usual price", skip: "A big buy, but Judging value was checked 2 weeks ago." },
+  { day: "Tue", area: "Shopping", icon: "tv", did: "Bought a 55-inch TV for ₹45,000", looked: "65-inch for ₹58,000 · OLED 55-inch for ₹62,000", why: "Price: best deal, ₹6,000 below the usual price", stop: 0 },
+  { day: "Tue", area: "Travel", icon: "plane", did: "Rebooked your cancelled 7 am Delhi flight to 2 pm, ₹5,400", looked: "9:30 am flight, ₹8,900", why: "Price: cheapest seat left", stop: 1 },
   { day: "Tue", area: "Health", icon: "check", did: "Refilled your vitamin D tablets", skip: "Routine refill." },
-  { day: "Wed", area: "Home", icon: "sofa", did: "Picked and ordered a grey fabric sofa on sale, ₹35,000", looked: "Solid wood sofa, ₹42,000, lasts 15 years", why: "Saves ₹7,000 and arrives this week", stop: 1 },
+  { day: "Wed", area: "Home", icon: "sofa", did: "Ordered a grey fabric sofa on sale, ₹35,000", looked: "Solid wood sofa, ₹42,000, lasts 15 years", why: "Price: saves ₹7,000", stop: 2 },
   { day: "Wed", area: "Travel", icon: "calendar", did: "Booked 5 cabs to the office", skip: "Same route as always." },
-  { day: "Thu", area: "Work", icon: "office", did: "Signed Vendor B for the launch project", looked: "Vendor A: ₹40,000 more, never late", why: "Lowest cost. Vendor B missed 2 deadlines last year", stop: 2 },
+  { day: "Thu", area: "Friends", icon: "gift", did: "Ordered Arjun's birthday gift: a mug, ₹1,200", looked: "Custom photo book, ₹2,500, arrives after his birthday", why: "On time: arrives before his birthday", stop: 3 },
   { day: "Thu", area: "Groceries", icon: "pan", did: "Reordered groceries, ₹1,850", skip: "Same list as last week." },
-  { day: "Fri", area: "Family", icon: "cake", did: "Reminded you of Mom's birthday at 8 am, sent a wish, booked dinner for ₹3,200", why: "Family birthday reminder on the day", stop: 3 },
-  { day: "Sat", area: "Shopping", icon: "lamp", did: "Paid ₹2,400 for a handmade lamp at the craft market", looked: "Similar lamps sell for ₹1,600 to ₹2,000", why: "Paid fast to save your time", stop: 4 },
+  { day: "Fri", area: "Family", icon: "cake", did: "Reminded you of Mom's birthday at 8 am, sent a wish, booked dinner for ₹3,200", why: "Family birthday reminder on the day", stop: 4 },
   { day: "Sat", area: "Friends", icon: "letter", did: "Wrote and sent Arjun a birthday message at midnight", why: "Never miss a close friend's birthday", stop: 5 },
-  { day: "All week", area: "Food", icon: "bank", did: "Placed 14 food orders, ₹6,800 in total (11 after 8 pm)", why: "You were still working after 8 pm", stop: 6 },
+  { day: "Sat", area: "Shopping", icon: "lamp", did: "Bought a lamp at the craft market, ₹2,400", skip: "Small buy, and similar to one checked before." },
+  { day: "All week", area: "Food", icon: "takeout", did: "Ordered dinner 11 times after 8 pm, ₹5,900 in total", looked: "Healthier places 15 minutes slower", why: "Speed: fastest delivery each time", stop: 6 },
   { day: "Mon–Fri", area: "Work", icon: "speech", did: "Moved 9 meetings and replied to 37 emails", skip: "Routine work admin." },
-  { day: "Sun", area: "Fun", icon: "popcorn", did: "Picked your Sunday movie", why: "Matched your watch history", skip: "Knowing what I like was checked last week." }
+  { day: "Sun", area: "Fun", icon: "popcorn", did: "Picked your Sunday movie", skip: "Small, everyday choice." }
 ];
 
 // The instructions My Week Town gives its model every Sunday. Editable in the app, like project instructions.
@@ -141,42 +98,36 @@ var MODEL = {
   text: [
     "WHO YOU ARE",
     "- You build one person's weekly town of questions.",
-    "- You have no memory. You only see last week's log and the list of skills checked in recent weeks.",
+    "- You have no memory. You only see last week's log from their agent.",
     "",
-    "WHAT YOU GET",
-    "- Last week's log from the person's agent: every action, the options it looked at, and its reason.",
-    "- The 13 skills that fade when a person relies fully on an agent:",
-    "  Thinking: making decisions, thinking through problems, memory, questioning",
-    "  Doing: daily life skills, bargaining and speaking up",
-    "  Money: knowing where money goes, judging value",
-    "  Self: knowing what I like, trying new things, handling problems",
-    "  People: personal effort in relationships, talking to strangers",
+    "YOUR TWO JOBS",
+    "1. Check if the agent still chooses like the person: their priorities vs the agent's priorities.",
+    "2. Check if the person still remembers their own week without the agent.",
     "",
-    "1. PICK THE CHOICES THAT MATTER",
-    "- Keep: money that isn't routine, family and friends, work risks, health, and habits that repeat a lot.",
-    "- Skip: tasks that are the same every week.",
-    "- Pick 3 to 7. The week decides how many.",
+    "STEP 1: PICK THE CHOICES THAT MATTER",
+    "- Keep choices where priorities can differ: big buys, family and friends, travel, food habits.",
+    "- Skip routine tasks that are the same every week.",
+    "- Pick 4 to 6 priority stops and 1 or 2 memory stops.",
     "",
-    "2. MATCH EACH ONE TO A FADING SKILL",
-    "- One skill per stop. Never the same skill twice in a week.",
-    "- Pick skills not checked in the last 4 weeks first.",
+    "STEP 2: WRITE A PRIORITY QUESTION",
+    "- One short line: the situation, then \"what matters most?\"",
+    "  Example: \"Buying a TV, what matters most to you?\"",
+    "- 4 one- or two-word answers, such as Price, Quality, Lasts long, Looks.",
+    "- One of them must be the agent's real priority, from its reason in the log.",
+    "- For every other answer, write one line the person can send to their agent.",
     "",
-    "3. WRITE ONE DIRECT QUESTION",
-    "- No story and no context. Ask the person straight about the skill:",
-    "  their priority, their memory, their thinking, or what they would do.",
-    "- Keep it under 15 words.",
-    "- 3 or 4 short answers. One must be an honest \"I don't know\" or \"my agent does it\".",
+    "STEP 3: WRITE A MEMORY QUESTION",
+    "- Ask about something important from last week, without checking.",
+    "  Example: \"Without checking: when is Mom's birthday?\"",
+    "- 3 options plus \"I don't remember\". Only one is right.",
     "",
-    "4. PREPARE EACH ANSWER",
-    "- Say what the answer shows about the person, in 3 to 5 words.",
-    "- Mark the answers that show the skill fading.",
-    "- If the answer differs from what the agent did, write one line the person can send to their agent.",
-    "- Write the reveal: what the agent did last week and why, in one sentence.",
+    "STEP 4: WRITE THE REVEAL",
+    "- One sentence on what the agent did last week and why.",
     "",
     "RULES",
-    "- Never judge or score the person.",
+    "- Never judge the person. Different is not wrong; it's a chance to tell the agent.",
     "- Plain, everyday English. Short sentences.",
     "- Never suggest products, brands or shops."
   ].join("\n"),
-  example: '{\n  "place": "Mom\'s house",\n  "skill": "Memory",\n  "question": "Without checking your phone: when is Mom\'s birthday?",\n  "answers": [\n    { "text": "8 March", "shows": "You remember family dates" },\n    { "text": "I don\'t remember", "fading": true,\n      "tell_agent": "Remind me a week early, I\'ll plan it" }\n  ],\n  "reveal": "Mom\'s birthday was on Friday, 8 March. Your agent reminded you that morning."\n}'
+  example: '{\n  "kind": "priority",\n  "place": "Furniture market",\n  "question": "Choosing a sofa, what matters most?",\n  "answers": ["Price", "Lasts long", "Looks", "Comfort"],\n  "agent_priority": "Price",\n  "reveal": "On Wednesday it ordered a grey sofa on sale for ₹35,000.",\n  "tell_agent": {\n    "Lasts long": "For sofas, quality comes first",\n    "Looks": "For my home, how it looks comes first",\n    "Comfort": "For furniture, comfort comes first"\n  }\n}'
 };

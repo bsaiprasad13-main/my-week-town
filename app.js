@@ -160,7 +160,7 @@ function openBehind(tab) {
       '<div><span class="when">' + esc(x.day) + " · " + esc(x.area) + "</span><b>" + esc(x.did) + "</b>" +
       (x.looked ? "<small>Also looked at: " + esc(x.looked) + "</small>" : "") +
       (x.why ? "<small>Agent's reason: " + esc(x.why) + "</small>" : "") +
-      '<span class="pick">' + (st ? "→ Stop " + (x.stop + 1) + ": " + esc(SKILLS[st.skill].name) : "Skipped. " + esc(x.skip)) + "</span></div></li>";
+      '<span class="pick">' + (st ? "→ Stop " + (x.stop + 1) + ": " + kindLabel(st) : "Skipped. " + esc(x.skip)) + "</span></div></li>";
   }).join("");
   behind.innerHTML =
     '<div class="panel"><div class="phead"><h2>Behind the town</h2><button class="x" id="bx" aria-label="Close">✕</button></div>' +
@@ -199,6 +199,9 @@ document.getElementById("behind-btn").addEventListener("click", function () { op
 behind.addEventListener("click", function (e) { if (e.target === behind) behind.hidden = true; });
 
 /* ---------- The game ---------- */
+function optText(st, k) { return st.options.filter(function (o) { return o.k === k; })[0].t; }
+function kindLabel(st) { return st.kind === "memory" ? "Memory" : "Your priority"; }
+
 function start(wi) {
   game = { wi: wi, week: WEEKS[wi], i: 0, results: [] };
   game.L = layout(game.week.stops.length);
@@ -211,9 +214,11 @@ function start(wi) {
   statusEl.textContent = game.week.label;
   var n = game.week.stops.length;
   openSheet(
-    '<p class="kicker">' + "It's 2040" + "</p>" +
+    '<p class="kicker">It\'s 2040</p>' +
     '<h1>Last week, your agent did <span class="hl">' + game.week.total + " things</span> for you.</h1>" +
-    '<p class="lead">' + n + " of them shaped you (" + esc(game.week.period) + "). The cat is asleep at home. Wake it up, and it will walk you to each one with a quick question.</p>" +
+    '<p class="lead">' + n + " of them were choices about your life (" + esc(game.week.period) + "). Wake up the cat and walk to each one to check two things:</p>" +
+    '<ul class="aims"><li>' + ico("target") + "<span><b>Does your agent still choose like you?</b> Your priorities vs your agent's.</span></li>" +
+    "<li>" + ico("brain") + "<span><b>Do you still remember your own week?</b></span></li></ul>" +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>" +
     '<button class="btn ghost" id="peek">' + ico("clipboard") + "See last week's log</button>");
   document.getElementById("go").addEventListener("click", function () { closeSheet(); setTimeout(next, 350); });
@@ -231,9 +236,9 @@ function ask(i) {
   el.classList.remove("locked");
   el.classList.add("here");
   openSheet(place(st, i) +
-    '<div class="chips"><span class="qtype">' + esc(SKILLS[st.skill].group) + " · " + esc(SKILLS[st.skill].name) + "</span>" +
+    '<div class="chips"><span class="qtype">' + ico(st.kind === "memory" ? "brain" : "target") + kindLabel(st) + "</span>" +
     (lg ? '<span class="src">' + ico("clipboard") + "From last week's log · " + esc(lg.day) + "</span>" : "") + "</div>" +
-    "<h2>" + esc(st.question) + '</h2><div class="opts">' +
+    "<h2>" + esc(st.question) + '</h2><div class="opts' + (st.kind === "priority" ? " grid2" : "") + '">' +
     st.options.map(function (o) { return '<button class="opt" data-k="' + o.k + '">' + esc(o.t) + "</button>"; }).join("") + "</div>");
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
     b.addEventListener("click", function () { answer(i, b.getAttribute("data-k")); });
@@ -243,48 +248,43 @@ function ask(i) {
 function answer(i, key) {
   var st = game.week.stops[i], el = document.getElementById("b" + i);
   var o = st.options.filter(function (x) { return x.k === key; })[0];
-  var strong = !o.fade;
-  game.results[i] = { skill: st.skill, strong: strong, fixed: false, tip: st.tip, me: o.me };
+  var mem = st.kind === "memory";
+  var ok = mem ? key === st.answer : key === st.agent;
+  var fixText = mem ? (ok ? null : st.fix) : o.fix, fixedText = mem ? st.fixed : o.fixed;
+  game.results[i] = { kind: st.kind, choice: st.choice, icon: st.icon, ok: ok, you: o.t,
+    other: mem ? optText(st, st.answer) : optText(st, st.agent), fixed: false };
   el.classList.remove("here");
-  el.classList.add(strong ? "strong" : "fading");
-  el.querySelector(".badge").innerHTML = ico(strong ? "sparkles" : "fog");
+  el.classList.add(ok ? "strong" : "fading");
+  el.querySelector(".badge").innerHTML = ico(ok ? "sparkles" : mem ? "thought" : "differ");
 
-  // Your reason next to your agent's reason
-  var same = st.agent && key === st.agent;
-  var compare = '<div class="why"><div class="me"><small>You</small><p>' + esc(o.me || o.t) + "</p></div>" +
-    '<div class="ag"><small>' + ico("robot") + "Your agent, last week</small><p>" + esc(st.reason) + "</p></div></div>" +
-    (st.agent ? '<p class="match">' + (same ? "✔ Your agent chose for the same reason as you." : "Your agent chose for a different reason.") + "</p>" : "");
-
-  var s = SKILLS[st.skill];
-  var verdict = '<div class="verdict ' + (strong ? "ok" : "fade") + '">' + ico(s.part, "vi") + "<div><b>" + esc(s.name) + "</b><span>" +
-    (strong ? "Still strong. You know what you want here." : "Starting to fade. Your agent is doing this for you.") + "</span></div></div>";
-  var fix = o.fix
-    ? '<div class="fixbox" id="fixbox"><p>Want your agent to do it your way?</p>' +
-      '<button class="btn soft" id="fix">' + ico("hand") + "<span>Tell my agent: " + esc(o.fix) + "</span></button></div>"
+  var compare = mem
+    ? '<div class="vs"><div class="me"><small>You said</small><p>' + esc(o.t) + "</p></div>" +
+      '<div class="ag"><small>' + ico("clipboard") + "Last week's log</small><p>" + esc(optText(st, st.answer)) + "</p></div></div>"
+    : '<div class="vs"><div class="me"><small>Your priority</small><p>' + esc(o.t) + "</p></div>" +
+      '<div class="ag"><small>' + ico("robot") + "Your agent's priority</small><p>" + esc(optText(st, st.agent)) + "</p></div></div>";
+  var verdict = mem
+    ? '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "thought", "vi") + "<div><b>" + (ok ? "You remembered" : "This memory is slipping") + "</b><span>" + esc(st.did) + "</span></div></div>"
+    : '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" + (ok ? "Same as you. Your agent chose your way." : "Different. Your agent didn't choose your way.") + "</b><span>" + esc(st.did) + "</span></div></div>";
+  var fix = fixText
+    ? '<div class="fixbox" id="fixbox"><p>' + (mem ? "Want to keep this memory yours?" : "Want your agent to choose your way next time?") + "</p>" +
+      '<button class="btn soft" id="fix">' + ico("hand") + "<span>Tell my agent: " + esc(fixText) + "</span></button></div>"
     : "";
   var last = i === game.week.stops.length - 1;
   openSheet(place(st, i) + compare + verdict + fix +
     '<button class="btn" id="on">' + (last ? "Walk to the town hall" : "Keep walking") + "</button>");
   var fb = document.getElementById("fix");
   if (fb) fb.addEventListener("click", function () {
-    game.results[i].fixed = o.fixed;
-    document.getElementById("fixbox").innerHTML = '<p class="done">' + ico("check") + "Told your agent. " + esc(o.fixed) + "</p>";
+    game.results[i].fixed = fixedText;
+    document.getElementById("fixbox").innerHTML = '<p class="done">' + ico("check") + "Told your agent. " + esc(fixedText) + "</p>";
   });
   document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i++; setTimeout(next, 300); });
 }
 
-// Skills not checked this week: the model picks from these next Sunday
-function nextSkills() {
-  var used = game.week.stops.map(function (s) { return s.skill; });
-  return Object.keys(SKILLS).filter(function (k) { return used.indexOf(k) === -1; });
-}
-
 function ending() {
-  var r = game.results, n = r.length;
-  var strong = r.filter(function (x) { return x.strong; }).length;
-  var fading = r.length - strong;
+  var r = game.results;
+  var pr = r.filter(function (x) { return x.kind === "priority"; }), mm = r.filter(function (x) { return x.kind === "memory"; });
+  var same = pr.filter(function (x) { return x.ok; }).length, remembered = mm.filter(function (x) { return x.ok; }).length;
   var fixed = r.filter(function (x) { return x.fixed; });
-  var mine = r.filter(function (x) { return x.me; });
   closeSheet();
   document.getElementById("hall").classList.add("glow");
   cat.mode = "tired";
@@ -292,30 +292,31 @@ function ending() {
 
   setTimeout(function () {
     finale.hidden = false;
-    var rows = r.map(function (x) {
-      var s = SKILLS[x.skill];
-      return '<li class="' + (x.strong ? "ok" : "fade") + '">' + ico(s.part) + "<div><strong>" + esc(s.name) + "</strong>" +
-        (x.strong ? "" : "<small>Try: " + esc(x.tip) + "</small>") + '</div><span class="tag">' + (x.strong ? "Strong" : "Fading") + "</span></li>";
+    var rows = pr.map(function (x) {
+      return '<tr class="' + (x.ok ? "ok" : "fade") + '"><td>' + ico(x.icon) + esc(x.choice) + "</td><td>" + esc(x.you) + "</td><td>" + esc(x.other) +
+        '</td><td class="m">' + (x.ok ? "✔" : "✗") + "</td></tr>";
     }).join("");
-    var ring = Math.round(strong / n * 100);
+    var mems = mm.map(function (x) {
+      return '<li class="' + (x.ok ? "ok" : "fade") + '">' + ico(x.icon) + "<div><strong>" + esc(x.choice) + "</strong><small>" +
+        (x.ok ? "You remembered: " + esc(x.other) : "You said " + esc(x.you) + ". It was " + esc(x.other) + ".") + '</small></div><span class="tag">' + (x.ok ? "Yours" : "Slipping") + "</span></li>";
+    }).join("");
+    var ring = Math.round(same / pr.length * 100);
     finale.innerHTML =
       '<div class="card"><p class="kicker center">Your town · last week</p>' +
-      '<div class="score"><div class="ring" style="--p:' + ring + '"><span>' + strong + "<small>/" + n + "</small></span></div>" +
-      "<div><h1>skills still feel like yours</h1>" +
-      '<p class="lead">' + (fading ? fading + " " + (fading === 1 ? "is" : "are") + " starting to fade because your agent does them for you. One small step each keeps them alive." : "Your agent helps you without taking over. Keep it that way.") + "</p></div></div>" +
+      '<div class="score"><div class="ring" style="--p:' + ring + '"><span>' + same + "<small>/" + pr.length + "</small></span></div>" +
+      "<div><h1>choices made your way</h1>" +
+      '<p class="lead">' + (same === pr.length ? "Your agent still chooses like you." : "In " + (pr.length - same) + " choice" + (pr.length - same === 1 ? "" : "s") + ", your agent went by a different priority than yours.") +
+      " You remembered " + remembered + " of " + mm.length + ".</p></div></div>" +
       '<div class="bento">' +
-      '<div class="tile wide"><h3>' + ico("brain") + "Your skills</h3><ul class=\"skills\">" + rows + "</ul></div>" +
-      (mine.length ? '<div class="tile"><h3>' + ico("thought") + "What matters to you</h3><ul class=\"chiplist\">" +
-        mine.map(function (x) { return "<li>" + esc(x.me) + "</li>"; }).join("") + "</ul></div>" : "") +
-      (fixed.length ? '<div class="tile"><h3>' + ico("hand") + "You told your agent</h3><ul class=\"plain\">" +
+      '<div class="tile wide"><h3>' + ico("target") + 'Your priorities vs your agent\'s</h3><table class="pt"><thead><tr><th>Choice</th><th>You</th><th>Agent</th><th></th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      '<div class="tile wide"><h3>' + ico("brain") + 'Your memory</h3><ul class="skills">' + mems + "</ul></div>" +
+      (fixed.length ? '<div class="tile wide"><h3>' + ico("hand") + "You told your agent</h3><ul class=\"plain\">" +
         fixed.map(function (x) { return "<li>" + esc(x.fixed.replace(/^It will/, "Your agent will")) + "</li>"; }).join("") + "</ul></div>" : "") +
       '<div class="tile wide"><h3>' + ico("sparkles") + 'What you got from this walk</h3><ul class="gains">' +
-      "<li>" + ico("speech") + "<span>You know why your agent did all " + n + " things, and whether that's your reason too.</span></li>" +
-      "<li>" + ico("search") + "<span>You know which skills are slipping, before the day you need them.</span></li>" +
-      "<li>" + ico("target") + "<span>" + (fixed.length ? "Your agent now works a little more like you." : "You made " + n + " calls yourself, in about 2 minutes.") + "</span></li>" +
-      "</ul></div>" +
-      '<div class="tile wide"><h3>' + ico("calendar") + 'Next Sunday, your cat checks</h3><ul class="chiplist">' +
-      nextSkills().map(function (k) { return "<li>" + ico(SKILLS[k].part) + esc(SKILLS[k].name) + "</li>"; }).join("") + "</ul></div></div>" +
+      "<li>" + ico("speech") + "<span>You can explain why your agent made each choice, and where its priorities differ from yours.</span></li>" +
+      "<li>" + ico("brain") + "<span>You know which parts of your own week you still remember.</span></li>" +
+      "<li>" + ico("target") + "<span>" + (fixed.length ? "Your agent now knows " + fixed.length + " of your priorities better." : "You made " + r.length + " calls yourself, in about 2 minutes.") + "</span></li>" +
+      "</ul></div></div>" +
       '<p class="closing">Your agent saves your time.<br><span>My Week Town keeps you, you.</span></p>' +
       '<button class="btn" id="again">Walk the town again</button>' +
       '<button class="btn ghost" id="peek2">' + ico("robot") + "How this town was made</button></div>";
