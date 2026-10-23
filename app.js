@@ -140,7 +140,21 @@ function follow(y, instant) {
   window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
 }
 
-function openSheet(html) { sheet.innerHTML = html; sheet.classList.add("open"); sheet.scrollTop = 0; }
+function openSheet(html, instant) { sheet.innerHTML = html; sheet.classList.add("open"); sheet.scrollTop = 0; keepCatVisible(instant); }
+
+// Scroll so the cat sits in the open space between the header and the card
+function keepCatVisible(instant) {
+  setTimeout(function () {
+    var c = document.getElementById("cat");
+    if (!c) return;
+    var r = c.getBoundingClientRect(), head = document.querySelector(".top").offsetHeight;
+    var free = window.innerHeight - sheet.offsetHeight;          // where the card's top edge ends up
+    var catTop = r.top - 34, catBottom = r.bottom + 14;           // room for the "z z" and the shadow
+    var target = window.scrollY + catBottom - free + 6;          // put the cat just above the card
+    if (catTop - (catBottom - free + 6) < head) target = window.scrollY + catTop - head - 8; // tall card: keep its head in view
+    if (catBottom > free || catTop < head) window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
+  }, 30);
+}
 function closeSheet() { sheet.classList.remove("open"); }
 function place(st, i) {
   return '<div class="kicker"><span class="kplace">' + ico(st.icon) + esc(st.place) + '</span><span class="count">' + (i + 1) + " of " + game.week.stops.length + "</span></div>";
@@ -210,17 +224,16 @@ function start(wi) {
   cat.mode = "sleeping";
   document.getElementById("zz").classList.add("on");
   window.scrollTo(0, 0);
-  requestAnimationFrame(function () { follow(game.L.home.y, true); });
   statusEl.textContent = game.week.label;
   var n = game.week.stops.length;
   openSheet(
     '<p class="kicker">It\'s 2040</p>' +
     '<h1>Last week, your agent did <span class="hl">' + game.week.total + " things</span> for you.</h1>" +
-    '<p class="lead">' + n + " of them were choices about your life (" + esc(game.week.period) + "). Wake up the cat and walk to each one to check two things:</p>" +
+    '<p class="lead">' + n + " of them were choices about your life (" + esc(game.week.period) + "). Wake up the cat to check two things:</p>" +
     '<ul class="aims"><li>' + ico("target") + "<span><b>Does your agent still choose like you?</b> Your priorities vs your agent's.</span></li>" +
     "<li>" + ico("brain") + "<span><b>Do you still remember your own week?</b></span></li></ul>" +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>" +
-    '<button class="btn ghost" id="peek">' + ico("clipboard") + "See last week's log</button>");
+    '<button class="btn ghost" id="peek">' + ico("clipboard") + "See last week's log</button>", true);
   document.getElementById("go").addEventListener("click", function () { closeSheet(); setTimeout(next, 350); });
   document.getElementById("peek").addEventListener("click", function () { openBehind("log"); });
 }
