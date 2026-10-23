@@ -4,35 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Weekly Why Cards</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <button class="brand" id="go-home" type="button">🃏 Weekly Why Cards</button>
-    <button type="button" class="pill" id="go-progress">Progress</button>
+  <header class="top">
+    <span class="brand">🃏 Weekly Why Cards</span>
+    <span class="when">Sunday, 10 March 2040</span>
   </header>
-  <div class="weekbar"><span id="week-label"></span></div>
-
+  <div class="progress" aria-hidden="true"><span id="bar"></span></div>
   <main id="screen" aria-live="polite"></main>
-
-  <footer class="demo">
-    <span>Prototype · sample data for 4 weeks in 2040</span>
-    <span class="row">
-      <button type="button" id="next-week" class="link">Skip to next week ▸</button>
-      <button type="button" id="go-settings" class="link">Settings</button>
-      <button type="button" id="reset-demo" class="link">Reset demo</button>
-    </span>
-  </footer>
-
-  <script src="js/data/reasons.js"></script>
-  <script src="js/data/sample-weeks.js"></script>
-  <script src="js/storage.js"></script>
-  <script src="js/cardBuilder.js"></script>
-  <script src="js/scoring.js"></script>
-  <script src="js/metrics.js"></script>
-  <script src="js/cards.js"></script>
-  <script src="js/progress.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

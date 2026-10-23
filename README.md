@@ -1,22 +1,22 @@
 # Weekly Why Cards (prototype)
 
-Every Sunday, 5 quick cards check whether you still know the reasons behind your own big choices, the ones your AI agent made for you in 2040.
+It's 2040. Your AI agent makes your choices. Every Sunday, 3 cards check **whether you know why** your agent chose what it chose, and **whether it chose your way**.
 
-Plain HTML, CSS and JavaScript. No install, no internet.
+A guided visual prototype of one Sunday check-in. Plain HTML, CSS and JavaScript (3 files). No install. Fonts load from Google Fonts when online; offline it falls back to system fonts.
 
 ## Run it
-Double-click `index.html`, or serve the folder (for example `python -m http.server 8123`) and open http://localhost:8123.
+Double-click `index.html`.
 
-## How it works
-1. **Welcome:** how many big choices your agent made last week, and what the cards do.
-2. **5 cards, one at a time:** pick the real reason from 3 options, type your own with **Other reason**, or tap **Not sure**.
-3. **After each card:** ✅ you knew why · 🔀 different reason (you're asked if the agent's reason is okay with you) · ❔ you'd lost track.
-4. **Score:** "You knew why for 3 of 5," your awareness (the north star), and every card's real reason.
-5. **Next week:** areas you missed get more cards. **Progress** shows awareness by week.
+## The journey (8 screens)
+1. **Intro:** "Your agent makes your choices. Do you still know why?"
+2. **How do you choose?** Pick your top 3 criteria, in order (for example quality, fair mid-range price, reliability).
+3. **Sunday check-in:** "Last week your agent made 8 big choices. Here are 3 worth a second look."
+4. **3 cards** (TV, office vendor, health insurance). Each asks *"Why do you think your agent picked it?"*: 3 options, **Something else** (type it), or **Not sure**. Then it reveals:
+   - what the agent actually looked at,
+   - ✅ / ❔ **Did you know why?**
+   - 🤝 / ⚠️ **Was it chosen your way?** (the agent's criterion against your top 3)
+5. **Sunday report:** "You knew why: 2/3 · Chosen your way: 1/3," one insight line, and "Remind my agent: quality comes first."
+6. **4 Sundays later:** awareness rising from 33% to 100% (illustrative).
 
 ## What is simulated
-| Real 2040 product | In this prototype |
-|---|---|
-| Connection to my personal agent | 4 sample weeks in `js/data/sample-weeks.js` |
-| Memoryless AI model with editable instructions | Rule-based `buildWeek()` in `js/cardBuilder.js` |
-| Understanding my typed reason | Matching against reason synonyms in `js/data/reasons.js` |
+Sample data stands in for the AI agent, and the 4-week chart is illustrative. In the real product, an AI model with no memory would pick the cards from the agent's weekly data.
