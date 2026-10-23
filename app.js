@@ -142,7 +142,7 @@ function follow(y, instant) {
 
 function openSheet(html, instant) { sheet.innerHTML = html; sheet.classList.add("open"); sheet.scrollTop = 0; keepCatVisible(instant); }
 
-// Scroll so the cat sits in the open space between the header and the card
+// Scroll so the cat sits just above the card (no empty gap, never hidden)
 function keepCatVisible(instant) {
   setTimeout(function () {
     var c = document.getElementById("cat");
@@ -152,7 +152,7 @@ function keepCatVisible(instant) {
     var catTop = r.top - 34, catBottom = r.bottom + 14;           // room for the "z z" and the shadow
     var target = window.scrollY + catBottom - free + 6;          // put the cat just above the card
     if (catTop - (catBottom - free + 6) < head) target = window.scrollY + catTop - head - 8; // tall card: keep its head in view
-    if (catBottom > free || catTop < head) window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
+    if (Math.abs(target - window.scrollY) > 4) window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
   }, 30);
 }
 function closeSheet() { sheet.classList.remove("open"); }
