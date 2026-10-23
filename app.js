@@ -56,46 +56,95 @@ function layout(n) {
 }
 
 function drawTown() {
-  var L = game.L, n = game.week.stops.length;
-  mapEl.style.aspectRatio = W + " / " + L.H;
+  var L = game.L, n = game.week.stops.length, H = L.H;
+  mapEl.style.aspectRatio = W + " / " + H;
   var pts = [{ x: L.home.x, y: L.home.y + 84 }]
     .concat(L.spots.map(function (s) { return { x: s.x, y: s.y + 82 }; }))
     .concat([{ x: L.hall.x, y: L.hall.y + 86 }]);
   game.path = pts;
-  var d = pts.map(function (p, i) {
-    if (!i) return "M" + p.x + " " + p.y;
-    var q = pts[i - 1], my = (q.y + p.y) / 2;
-    return "C" + q.x + " " + my + " " + p.x + " " + my + " " + p.x + " " + p.y;
-  }).join(" ");
+  function leg(i) { var q = pts[i - 1], p = pts[i], my = (q.y + p.y) / 2; return "C" + q.x + " " + my + " " + p.x + " " + my + " " + p.x + " " + p.y; }
+  var d = "M" + pts[0].x + " " + pts[0].y;
+  for (var i = 1; i < pts.length; i++) d += " " + leg(i);
 
-  // Trees along both edges, flowers next to each stop
-  var deco = "";
-  function img(name, x, y, size) { deco += '<image href="icons/' + name + '.png" x="' + x + '" y="' + y + '" width="' + size + '" height="' + size + '"/>'; }
-  for (var y = 40; y < L.H - 60; y += 78) {
-    img(y % 2 ? "tree1" : "tree2", y % 3 ? 4 : 14, y, 34);
-    img(y % 2 ? "tree2" : "tree1", y % 3 ? 322 : 312, y + 34, 34);
+  var svg = "", deco = "";
+  function img(name, x, y, size, cls, delay) {
+    return '<image href="icons/' + name + '.png" x="' + x + '" y="' + y + '" width="' + size + '" height="' + size + '"' +
+      (cls ? ' class="' + cls + '"' : "") + (delay ? ' style="animation-delay:' + delay + 's"' : "") + "/>";
   }
-  for (var k = 0; k < n; k++) {
-    var s = L.spots[k];
-    img(["flower1", "flower2", "clover"][k % 3], s.x > 180 ? 140 : 196, s.y - 14, 22);
+  function pad(x, y, rx, ry) {
+    return '<ellipse cx="' + x + '" cy="' + (y + 5) + '" rx="' + rx + '" ry="' + ry + '" fill="rgba(70,90,70,.13)"/>' +
+      '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="url(#pad)" stroke="#fbfaf5" stroke-width="2"/>';
   }
+
+  // Ground: soft grass with tufts, light vignette
+  svg += '<defs>' +
+    '<radialGradient id="g" cx="50%" cy="45%" r="80%"><stop offset="0" stop-color="#e5eedd"/><stop offset="1" stop-color="#d2dfca"/></radialGradient>' +
+    '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3ebf3"/><stop offset="1" stop-color="#e3ebf3" stop-opacity="0"/></linearGradient>' +
+    '<radialGradient id="pad" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#f6f4ec"/><stop offset="1" stop-color="#e4e1d4"/></radialGradient>' +
+    '<radialGradient id="pond" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#dbe8ef"/><stop offset="1" stop-color="#b9cfdc"/></radialGradient>' +
+    '<radialGradient id="vig" cx="50%" cy="50%" r="75%"><stop offset=".7" stop-color="#5a6e5a" stop-opacity="0"/><stop offset="1" stop-color="#5a6e5a" stop-opacity=".12"/></radialGradient>' +
+    '<pattern id="tuft" width="26" height="22" patternUnits="userSpaceOnUse"><path d="M5 15 l2 -5 M8 15 l-1 -4 M18 7 l2 -4 M21 7 l-1 -3" stroke="#bfd0b6" stroke-width="1.2" stroke-linecap="round" opacity=".38"/></pattern>' +
+    "</defs>";
+  svg += '<rect width="' + W + '" height="' + H + '" fill="url(#g)"/><rect width="' + W + '" height="' + H + '" fill="url(#tuft)"/>';
+
+  // Sky and rolling hills behind the town hall
+  svg += '<rect width="' + W + '" height="170" fill="url(#sky)"/>' +
+    '<path d="M0 120 C60 80 120 86 180 112 C240 86 300 78 360 110 L360 200 L0 200 Z" fill="#dce8d4" opacity=".9"/>' +
+    '<path d="M0 150 C80 118 150 128 210 146 C270 126 320 124 360 142 L360 210 L0 210 Z" fill="#d5e2cc"/>';
+
+  // Pond near home
+  var py = H - 52;
+  svg += '<ellipse cx="62" cy="' + py + '" rx="48" ry="20" fill="url(#pond)" stroke="#eef4f6" stroke-width="3"/>' +
+    '<ellipse cx="50" cy="' + (py - 6) + '" rx="16" ry="4" fill="#fff" opacity=".45"/>' +
+    '<ellipse class="ripple" cx="74" cy="' + (py + 3) + '" rx="6" ry="2.5" fill="none" stroke="#fff" stroke-width="1.2"/>' +
+    img("herb", 98, py - 22, 22);
+
+  // Road, the trail you've walked, and the centre line
+  svg += '<path d="' + d + '" class="road-edge"/><path d="' + d + '" class="road"/>';
+  for (i = 1; i < pts.length; i++) svg += '<path d="M' + pts[i - 1].x + " " + pts[i - 1].y + " " + leg(i) + '" class="trail" id="trail' + (i - 1) + '"/>';
+  svg += '<path d="' + d + '" class="road-line"/>';
+
+  // Platforms under every building, a plaza with flags and a fountain at the town hall
+  svg += pad(L.home.x, L.home.y + 10, 48, 15) + pad(L.hall.x, L.hall.y + 10, 66, 18);
+  L.spots.forEach(function (s) { svg += pad(s.x, s.y + 8, 44, 14); });
+  [L.hall.x - 62, L.hall.x + 62].forEach(function (fx, k) {
+    svg += '<line x1="' + fx + '" y1="' + (L.hall.y + 10) + '" x2="' + fx + '" y2="' + (L.hall.y - 34) + '" stroke="#a9b3ad" stroke-width="2"/>' +
+      '<path class="flag" d="M' + fx + " " + (L.hall.y - 34) + " l16 5 l-16 5 Z" + '" fill="' + (k ? "#9ea3cf" : "#7895ab") + '"/>';
+  });
+
+  // Trees on both edges (they sway), little things next to each stop
+  for (var y = 40; y < H - 60; y += 78) {
+    if (y < H - 140) deco += img(y % 2 ? "tree1" : "tree2", y % 3 ? 4 : 14, y, 34, "tree", (y % 7) * 0.4);
+    deco += img(y % 2 ? "tree2" : "tree1", y % 3 ? 322 : 312, y + 34, 34, "tree", (y % 5) * 0.5);
+  }
+  L.spots.forEach(function (s, k) {
+    deco += img(["flower1", "flower2", "clover"][k % 3], s.x > 180 ? 140 : 196, s.y - 14, 22);
+    deco += img(k % 2 ? "rock" : "mushroom", s.x > 180 ? s.x + 34 : s.x - 56, s.y + 2, 20);
+  });
+  deco += img("fountain", L.hall.x + 76, L.hall.y - 16, 30) + img("rock", L.hall.x - 100, L.hall.y + 4, 18);
+  svg += deco + '<rect width="' + W + '" height="' + H + '" fill="url(#vig)" pointer-events="none"/>';
 
   mapEl.innerHTML =
-    '<svg class="ground" viewBox="0 0 ' + W + " " + L.H + '" preserveAspectRatio="none" aria-hidden="true">' +
-    '<defs><radialGradient id="g" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#e6eedf"/><stop offset="1" stop-color="#d3dfcb"/></radialGradient></defs>' +
-    '<rect width="' + W + '" height="' + L.H + '" fill="url(#g)"/>' +
-    '<path d="' + d + '" class="road-edge"/><path d="' + d + '" class="road"/><path d="' + d + '" class="road-line"/>' + deco + "</svg>" +
-    ico("cloud", "cloud c1") + ico("cloud", "cloud c2") +
+    '<svg class="ground" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" aria-hidden="true">' + svg + "</svg>" +
+    ico("cloud", "cloud c1") + ico("cloud", "cloud c2") + ico("butterfly", "fly") +
     spot(L.hall, "hall", "hall", "Town hall", "") +
     spot(L.home, "home", "home", "Home", "") +
-    game.week.stops.map(function (st, i) { return spot(L.spots[i], "b" + i, st.icon, st.place, "locked"); }).join("") +
+    game.week.stops.map(function (st, i) { return spot(L.spots[i], "b" + i, st.icon, st.place, "locked", i + 1); }).join("") +
     '<div class="cat" id="cat"><div class="cat-sprite" id="cat-sprite"></div><span class="zz" id="zz">z z</span></div>';
+
+  // Trails start hidden and draw in as the cat walks
+  game.trail = [];
+  mapEl.querySelectorAll(".trail").forEach(function (p, k) {
+    var len = p.getTotalLength();
+    p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+    game.trail[k] = { el: p, len: len };
+  });
   placeCat(pts[0].x, pts[0].y);
 }
 
-function spot(p, id, icon, label, cls) {
+function spot(p, id, icon, label, cls, num) {
   return '<div class="spot ' + cls + '" id="' + id + '" style="left:' + pct(p.x, W) + ";top:" + pct(p.y, game.L.H) + '">' +
-    '<span class="badge"></span>' + ico(icon, "bldg") + '<span class="plate">' + esc(label) + "</span></div>";
+    '<span class="badge">' + (num ? '<span class="num">' + num + "</span>" : "") + "</span>" + ico(icon, "bldg") + '<span class="plate">' + esc(label) + "</span></div>";
 }
 
 function placeCat(x, y) {
@@ -110,6 +159,20 @@ function nextFrame(fn) {
   function run() { if (!called) { called = true; fn(performance.now()); } }
   requestAnimationFrame(run);
   setTimeout(run, 50);
+}
+
+// Our own smooth scroll (the browser's one pauses in background tabs)
+var scrollToken = 0;
+function scrollPage(top, instant) {
+  top = Math.max(0, Math.min(top, document.documentElement.scrollHeight - window.innerHeight));
+  var my = ++scrollToken, from = window.scrollY, dist = top - from, ms = 650, t0 = performance.now();
+  if (instant || reduceMotion || Math.abs(dist) < 2) { window.scrollTo(0, top); return; }
+  (function step(now) {
+    if (my !== scrollToken) return;
+    var k = Math.min(1, (now - t0) / ms), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    window.scrollTo(0, from + dist * e);
+    if (k < 1) nextFrame(step);
+  })(t0);
 }
 
 function walk(fromIdx, toIdx, done) {
@@ -127,6 +190,8 @@ function walk(fromIdx, toIdx, done) {
       if (Math.hypot(x - prev.x, y - prev.y) > 0.3) cat.mode = direction(x - prev.x, y - prev.y);
       prev = { x: x, y: y };
       placeCat(x, y);
+      var tr = game.trail && game.trail[fromIdx];
+      if (tr) tr.el.style.strokeDashoffset = tr.len * (1 - t);
       if (t < 1) nextFrame(step);
       else { cat.mode = "idle"; cat.idleTicks = 0; done(); }
     }
@@ -137,7 +202,7 @@ function walk(fromIdx, toIdx, done) {
 function follow(y, instant) {
   var rect = mapEl.getBoundingClientRect();
   var target = window.scrollY + rect.top + rect.height * (y / game.L.H) - window.innerHeight * 0.28;
-  window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
+  scrollPage(target, instant);
 }
 
 function openSheet(html, instant) { sheet.innerHTML = html; sheet.classList.add("open"); sheet.scrollTop = 0; keepCatVisible(instant); }
@@ -152,7 +217,7 @@ function keepCatVisible(instant) {
     var catTop = r.top - 34, catBottom = r.bottom + 14;           // room for the "z z" and the shadow
     var target = window.scrollY + catBottom - free + 6;          // put the cat just above the card
     if (catTop - (catBottom - free + 6) < head) target = window.scrollY + catTop - head - 8; // tall card: keep its head in view
-    if (Math.abs(target - window.scrollY) > 4) window.scrollTo({ top: Math.max(0, target), behavior: reduceMotion || instant ? "auto" : "smooth" });
+    if (Math.abs(target - window.scrollY) > 4) scrollPage(target, instant);
   }, 30);
 }
 function closeSheet() { sheet.classList.remove("open"); }
@@ -302,7 +367,7 @@ function answer(i, key, own) {
   document.getElementById("redo").addEventListener("click", function () {
     game.results[i] = null;
     el.classList.remove("strong", "fading");
-    el.querySelector(".badge").innerHTML = "";
+    el.querySelector(".badge").innerHTML = '<span class="num">' + (i + 1) + "</span>";
     ask(i);
   });
   var fb = document.getElementById("fix");
