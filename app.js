@@ -248,6 +248,15 @@ function stopsFrom(qs) {
     return Object.assign({ scn: scn, area: area, agentKey: agentKey, icon: pickIcon(SCN[scn].icon), place: AREAS[area].place }, q);
   });
 }
+function stopQ(st) { return st.ai ? st.ai.q : SCN[st.scn].q; }
+function stopOpts(st) { return st.ai ? st.ai.options : optionsFor(st.scn, st.agentKey); }
+function stopOptText(st, k) {
+  if (k.indexOf("custom:") === 0) return k.slice(7);
+  var o = stopOpts(st).filter(function (x) { return x.k === k; })[0];
+  return o ? o.t : optionText(st.scn, k);
+}
+function aiOn() { return !!(window.MWT_AI && MWT_AI.settings().enabled); }
+
 function inGame() { return game && game.playing && !game.done; }
 
 // Home: the cat sleeps
@@ -287,6 +296,45 @@ function syncing() {
     var plan = prepareCatchUp();
     game.plan = plan;
     game.stops = stopsFrom(plan.qs);
+    if (aiOn()) thinking(plan); else ready(plan);
+  }, reduceMotion ? 50 : 1200);
+}
+
+// The in-browser AI writes the questions. The user can skip and get the quick (pre-written) ones.
+function thinking(plan) {
+  var cancelled = false, n = game.stops.length;
+  openSheet("<h2>The cat is thinking up questions…</h2>" +
+    '<div class="bar"><i id="pbar"></i></div><p class="hint" id="ptext">Getting ready…</p>' +
+    navRow([["skipai", "Use quick questions instead"]]));
+  var bar = document.getElementById("pbar"), txt = document.getElementById("ptext");
+  var onAI = function (e) {
+    var s = e.detail;
+    if (s.status === "loading") { bar.style.width = Math.round(s.progress * 100) + "%"; txt.textContent = "Getting the cat ready (first time only)… " + Math.round(s.progress * 100) + "%"; }
+  };
+  window.addEventListener("mwt-ai", onAI);
+  var finish = function () {
+    window.removeEventListener("mwt-ai", onAI);
+    if (cancelled === "done") return;
+    cancelled = "done";
+    ready(plan);
+  };
+  document.getElementById("skipai").addEventListener("click", function () {
+    cancelled = true;
+    MWT_AI.interrupt();
+    game.stops.forEach(function (s) { delete s.ai; s.icon = pickIcon(SCN[s.scn].icon); });
+    finish();
+  });
+  setBack(null);
+  MWT_AI.generate(game.stops, function (done, total) {
+    if (cancelled) return;
+    bar.style.width = Math.round(done / total * 100) + "%";
+    txt.textContent = "Question " + Math.min(done + 1, total) + " of " + total + "…";
+  }, function () { return !!cancelled; }).then(finish, finish);
+}
+
+function ready(plan) {
+  if (game.plan !== plan) return;
+  setTimeout(function () {
     game.L = layout(game.stops.length);
     drawTown();
     cat.mode = "idle";
@@ -304,7 +352,7 @@ function syncing() {
       closeSheet();
       setTimeout(next, 350);
     });
-  }, reduceMotion ? 50 : 1200);
+  }, 0);
 }
 
 function next() {
@@ -349,8 +397,8 @@ function ask(i) {
   el.classList.remove("locked");
   el.classList.add("here");
   setBack(i > 0 ? function () { goStop(i - 1); } : goHome);
-  var opts = optionsFor(st.scn, st.agentKey);
-  openSheet(stopHead(st, i) + catSays(i, SCN[st.scn].q) +
+  var opts = stopOpts(st);
+  openSheet(stopHead(st, i) + catSays(i, stopQ(st)) +
     '<div class="opts grid2" id="opts">' +
     opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '">' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
@@ -385,7 +433,7 @@ function markStop(i, ok) {
 
 function answerChoice(i, key) {
   var st = game.stops[i], a = AREAS[st.area], prio = labelOf(st.area, key), ok = key === st.agentKey;
-  game.results[i] = { ok: ok, you: optionText(st.scn, key), sent: false, declined: false,
+  game.results[i] = { ok: ok, you: stopOptText(st, key), sent: false, declined: false,
     upd: ok ? null : { area: st.area, key: key, fix: "For " + a.about + ", put “" + prio + "” first", fixed: "For " + a.about + ", “" + prio + "” comes first." } };
   markStop(i, ok);
   showReveal(i);

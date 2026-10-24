@@ -125,6 +125,13 @@ var SIM_ROUTINE = [
 // Fun checks: asked when little or nothing new happened. Compared with the agent's current picture of the user.
 var CHECKS = ["W3", "F3", "C3", "G3", "H3", "X2", "W2", "T2"];
 
+// Free, open-source models that run inside the browser (WebLLM). Downloaded once, then cached on the device.
+var AI_MODELS = [
+  { id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", name: "Qwen 2.5 · 0.5B", size: "about 0.4 GB", note: "Smallest and fastest, simpler questions" },
+  { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", name: "Qwen 2.5 · 1.5B", size: "about 1 GB", note: "Balanced (default)" },
+  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", name: "Llama 3.2 · 3B", size: "about 2 GB", note: "Best writing, slower, needs a stronger GPU" }
+];
+
 // The instructions the app's model follows. Admin only; editable like project instructions.
 var MODEL = {
   intro: "Each time the user starts a game, a fresh AI model with no memory reads what the user's agent did since the last successful catch-up and prepares the questions. These are its instructions.",

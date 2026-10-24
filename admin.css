@@ -63,3 +63,15 @@ h3.sub { font-size: 0.95rem; margin: 6px 0 2px; }
 .iconlib b { font-size: 0.82rem; }
 .iconlib small { color: var(--muted); font-size: 0.72rem; font-family: ui-monospace, Consolas, monospace; }
 .tbl td .ic { width: 26px; height: 26px; }
+
+.aibox { background: var(--soft); border-radius: 18px; padding: 14px; margin-bottom: 12px; display: grid; gap: 14px; }
+.airow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.airow.col { flex-direction: column; align-items: stretch; }
+.aim { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; cursor: pointer; }
+.aim input { margin-top: 4px; accent-color: var(--accent); }
+.aim small { display: block; color: var(--muted); }
+.aibox .actions { margin: 6px 0 0; }
+.aiq { display: flex; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.aiq .ic { width: 40px; height: 40px; }
+.aiq ul { margin: 6px 0; padding-left: 18px; }
+.tbl td.raw { font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem; color: var(--muted); max-width: 420px; word-break: break-word; }
