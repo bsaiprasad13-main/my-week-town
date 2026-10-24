@@ -99,7 +99,7 @@
     if (id === "ai") {
       var s = window.MWT_AI ? MWT_AI.settings() : { enabled: false, model: AI_MODELS[1].id };
       var runs = ST.get("aiRuns", []).slice().reverse(), logs = ST.get("aiLog", []).slice().reverse().slice(0, 12);
-      return '<p class="lead">A free, open-source model runs inside this browser and writes each question from the agent\'s log and the model instructions. Nothing leaves the device. If the device can\'t run it (most phones), or an answer comes back broken, the game uses the pre-written questions. The setting is saved on this device.</p>' +
+      return '<p class="lead"><b>Experimental.</b> A free, open-source model runs inside this browser and writes a fresh variation of each question, using the agent\'s log and the model instructions. Nothing leaves the device. Speed depends on the GPU: on a laptop\'s built-in graphics expect about 25 seconds per question, and the user can always tap "Use quick questions instead". If the device can\'t run it (most phones), or an answer comes back broken, the game uses the pre-written questions. The setting is saved on this device.</p>' +
         '<div class="aibox"><div class="airow"><b>Write questions with AI</b><div class="tabs vtabs"><button data-aion="1" class="' + (s.enabled ? "on" : "") + '">On</button><button data-aion="0" class="' + (!s.enabled ? "on" : "") + '">Off</button></div></div>' +
         '<div class="airow col"><b>Model</b>' + AI_MODELS.map(function (m) {
           return '<label class="aim"><input type="radio" name="aimodel" value="' + m.id + '"' + (m.id === s.model ? " checked" : "") + '><span><b>' + esc2(m.name) + "</b> · " + esc2(m.size) + '<small>' + esc2(m.note) + "</small></span></label>";
