@@ -68,11 +68,11 @@
 
   function body(id, d) {
     if (id === "log") return '<p class="lead">Each time the user starts a game, the app fetches only what the agent did after the last successful catch-up. A run the user backed out of doesn\'t move that time.</p>' +
-      (d.syncs.length ? '<div class="scroll"><table class="tbl"><thead><tr><th>When</th><th>Fetched from</th><th>Fetched</th><th>Crucial</th><th>Routine skipped</th><th>Game</th><th>Waiting</th><th>Status</th></tr></thead><tbody>' +
+      (d.syncs.length ? '<div class="scroll"><table class="tbl"><thead><tr><th>When</th><th>Fetched from</th><th>Fetched</th><th>Crucial</th><th>Routine skipped</th><th>The 6 questions</th><th>Waiting</th><th>Status</th></tr></thead><tbody>' +
         d.syncs.map(function (s) {
           var used = s.status !== "not played";
           return "<tr><td>" + esc2(when(s.at)) + '</td><td class="muted">' + (s.from ? esc2(when(s.from)) : "Last 7 days (first run)") + "</td><td>" + s.fetched + "</td><td>" + s.crucial + "</td><td>" + s.routine +
-            "</td><td>" + s.choices + " choice" + (s.choices === 1 ? "" : "s") + " + " + s.checks + " taste check" + (s.checks === 1 ? "" : "s") + "</td><td>" + s.carried +
+            "</td><td>" + s.choices + " from the agent's activity + " + s.checks + " check" + (s.checks === 1 ? "" : "s") + "</td><td>" + s.carried +
             '</td><td><span class="tag ' + (used ? "asked" : "wait") + '">' + (used ? "Success, played" : "Fetched, user went back") + "</span></td></tr>";
         }).join("") + "</tbody></table></div>" : '<p class="empty">No catch-ups yet. They appear when the user starts a game.</p>');
     if (id === "data") return '<p class="lead">Everything the agent shared, newest first, and what the app did with it. The user never sees this.</p>' +
@@ -90,7 +90,7 @@
       }).join("") + "</tbody></table>";
     if (id === "updates") return '<h3 class="sub">Updates the user sent</h3><p class="lead">Only the ones the user ticked and sent.</p>' +
       (d.rules.length ? '<table class="tbl"><tbody>' + d.rules.map(function (r) {
-        return "<tr><td>" + esc2(when(r.at)) + "</td><td>" + esc2(r.text) + '<br><span class="muted">Agent: “' + esc2(r.reply) + "”</span></td></tr>";
+        return "<tr><td>" + esc2(when(r.at)) + "</td><td>" + esc2(r.text) + '<br><span class="muted">Agent: ' + esc2(r.reply) + "</span></td></tr>";
       }).join("") + "</tbody></table>" : '<p class="empty">Nothing sent yet.</p>') +
       '<h3 class="sub">Games played</h3>' +
       (d.sessions.length ? '<table class="tbl"><tbody>' + d.sessions.map(function (s) {
@@ -156,7 +156,7 @@
       '<div class="voicebox"><div><b>' + icon("speech") + " The cat's voice</b><small>What the user sees in every question. Changes apply right away.</small></div>" +
       '<div class="tabs vtabs">' + Object.keys(VOICES).map(function (v) {
         return '<button data-voice="' + v + '" class="' + (voice() === v ? "on" : "") + '">' + esc2(VOICES[v].name) + "</button>";
-      }).join("") + '</div><p class="vprev">' + (voice() === "speaks" ? "“" + esc2(VOICES.speaks.openers[0]) + " You got a new TV. What did you want it to be great at?”" : esc2(VOICES.narrator.openers[0]) + " You got a new TV. What did you want it to be great at?") + "</p></div>" +
+      }).join("") + '</div><p class="vprev">' + (voice() === "speaks" ? "“" + esc2(VOICES.speaks.openers[0]) + " Booking a cab. What matters most to you?”" : esc2(VOICES.narrator.openers[0]) + " Booking a cab. What matters most to you?") + "</p></div>" +
       '<div class="cards">' + SECTIONS.map(function (s) {
         return '<button class="acard" data-sec="' + s.id + '">' + icon(s.icon) + "<span><b>" + esc2(s.title) + "</b><small>" + esc2(s.sum(d)) + '</small></span><i>Open →</i></button>';
       }).join("") + "</div></div>";
@@ -189,7 +189,7 @@
     view.querySelectorAll('[name="aimodel"]').forEach(function (r) { r.addEventListener("change", function () { MWT_AI.save({ model: r.value }); show(); }); });
     document.getElementById("aiload").addEventListener("click", function () { MWT_AI.load().catch(function () {}); });
     document.getElementById("aitry").addEventListener("click", function () {
-      var out = document.getElementById("aitryout"), id = CHECKS[Math.floor(Math.random() * CHECKS.length)], sc = SCN[id];
+      var out = document.getElementById("aitryout"), ids = Object.keys(SCN), id = ids[Math.floor(Math.random() * ids.length)], sc = SCN[id];
       var stop = { type: "check", scn: id, area: sc.area, agentKey: profile()[sc.area].order[0] };
       out.innerHTML = '<p class="muted">Writing a question about ' + esc2(AREAS[sc.area].name.toLowerCase()) + "…</p>";
       var t0 = performance.now();

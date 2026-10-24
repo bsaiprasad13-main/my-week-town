@@ -239,17 +239,20 @@ function navRow(items) {
 function pick(list, seed) { return list[seed % list.length]; }
 
 /* ---------- The game ---------- */
-// game.stops: one per question. A stop is { type: "choice", ev } (something the agent did) or { type: "check", scn } (a fun check).
-// Every stop is one everyday situation (scn) with 4 choices plus "Something else".
+// game.stops: always the same 6 questions, one per area. A stop is { type: "choice", evIds } (the agent acted in that area lately) or { type: "check" }.
+// The user ranks as many options as they like, plus "Something else".
 function stopsFrom(qs) {
   return qs.map(function (q) {
-    var scn = q.type === "choice" ? q.ev.scn : q.scn, area = SCN[scn].area;
-    var agentKey = q.type === "choice" ? q.ev.agentKey : profile()[area].order[0];
-    return Object.assign({ scn: scn, area: area, agentKey: agentKey, icon: pickIcon(SCN[scn].icon), place: AREAS[area].place }, q);
+    var area = SCN[q.scn].area;
+    return Object.assign({ area: area, agentKey: profile()[area].order[0], icon: pickIcon(SCN[q.scn].icon), place: AREAS[area].place }, q);
   });
 }
 function stopQ(st) { return st.ai ? st.ai.q : SCN[st.scn].q; }
-function stopOpts(st) { return st.ai ? st.ai.options : optionsFor(st.scn, st.agentKey); }
+// Options: the AI's reworded ones (if on) or the fixed ones, plus own priorities the user sent before
+function stopOpts(st) {
+  if (!st.ai) return optionsFor(st.scn);
+  return st.ai.options.concat(optionsFor(st.scn).filter(function (o) { return o.k.indexOf("custom:") === 0; }));
+}
 function stopOptText(st, k) {
   if (k.indexOf("custom:") === 0) return k.slice(7);
   var o = stopOpts(st).filter(function (x) { return x.k === k; })[0];
@@ -261,7 +264,7 @@ function inGame() { return game && game.playing && !game.done; }
 
 // Home: the cat sleeps
 function start() {
-  game = { stops: [], i: 0, results: [], playing: false };
+  game = { stops: [], i: 0, results: [], draft: {}, playing: false };
   game.L = layout(0);
   finale.hidden = true;
   drawTown();
@@ -280,7 +283,7 @@ function start() {
 // Leave the game from anywhere (Home button). Unanswered questions come back next time.
 function goHome() {
   if (inGame() && !confirm("Leave this game? Unanswered questions will come back next time.")) return;
-  if (inGame()) returnUnanswered(game.stops.filter(function (s, k) { return s.type === "choice" && !game.results[k]; }).map(function (s) { return s.ev.id; }));
+  if (inGame()) returnUnanswered(game.stops.filter(function (s, k) { return s.type === "choice" && !game.results[k]; }).reduce(function (all, s) { return all.concat(s.evIds); }, []));
   if (game && game.plan && !game.playing) cancelCatchUp(game.plan);
   start();
 }
@@ -341,7 +344,7 @@ function ready(plan) {
     var n = game.stops.length;
     statusEl.textContent = n + " questions";
     openSheet("<h1>The cat has <span class=\"hl\">" + n + " questions</span>, it seems.</h1>" +
-      '<p class="lead">' + (plan.choices ? "Some about your week, some just for fun." : "Nothing big happened, so these are just for fun.") + "</p>" +
+      '<p class="lead">Rank what matters to you. One, a few, or all.</p>' +
       '<button class="btn" id="walk">' + ico("sparkles") + "Let's go</button>" + navRow([["cback", "← Back"]]));
     var back = function () { cancelCatchUp(plan); start(); };
     document.getElementById("cback").addEventListener("click", back);
@@ -396,31 +399,58 @@ function ask(i) {
   var st = game.stops[i], el = document.getElementById("b" + i);
   el.classList.remove("locked");
   el.classList.add("here");
-  setBack(i > 0 ? function () { goStop(i - 1); } : goHome);
-  var opts = stopOpts(st);
+  var backTo = i > 0 ? function () { goStop(i - 1); } : goHome;
+  setBack(backTo);
+  var draft = game.draft[i] || (game.draft[i] = { rank: [], extra: [] });
+  var base = stopOpts(st);
+  var opts = base.concat(draft.extra.filter(function (x) { return !base.some(function (o) { return o.k === x.k; }); }));
   openSheet(stopHead(st, i) + catSays(i, stopQ(st)) +
-    '<div class="opts grid2" id="opts">' +
-    opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '">' + esc(o.t) + "</button>"; }).join("") +
+    '<div id="pick"><p class="hint">Tap in order of what matters to you. Rank as many as you like.</p>' +
+    '<div class="opts rank" id="opts">' +
+    opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '"><span class="rn"></span>' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
-    '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What matters most to you?</label>' +
+    '<button class="btn" id="done" disabled>Done</button></div>' +
+    '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What else matters to you?</label>' +
     '<button class="back" type="button" id="ownback">← Back</button></div>' +
-    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>' +
+    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Add</button></div></form>' +
     navRow([prevItem(i)]));
   wirePrev(i);
+  var done = document.getElementById("done");
+  function paint() {
+    sheet.querySelectorAll("[data-k]").forEach(function (b) {
+      var n = draft.rank.indexOf(b.getAttribute("data-k"));
+      b.classList.toggle("picked", n >= 0);
+      b.querySelector(".rn").textContent = n >= 0 ? n + 1 : "";
+    });
+    done.disabled = !draft.rank.length;
+    done.textContent = draft.rank.length ? "Done (" + draft.rank.length + " ranked)" : "Done";
+  }
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
-    b.addEventListener("click", function () { answerChoice(i, b.getAttribute("data-k")); });
+    b.addEventListener("click", function () {
+      var k = b.getAttribute("data-k"), n = draft.rank.indexOf(k);
+      if (n >= 0) draft.rank.splice(n, 1); else draft.rank.push(k);
+      paint();
+    });
   });
-  var form = document.getElementById("own"), input = document.getElementById("ownin");
-  var closeOwn = function () { form.hidden = true; document.getElementById("opts").hidden = false; setBack(i > 0 ? function () { goStop(i - 1); } : goHome); keepCatVisible(); };
+  paint();
+  done.addEventListener("click", function () { if (draft.rank.length) answerRank(i, draft.rank.slice()); });
+  var form = document.getElementById("own"), input = document.getElementById("ownin"), pickEl = document.getElementById("pick");
+  var closeOwn = function () { form.hidden = true; pickEl.hidden = false; setBack(backTo); keepCatVisible(); };
   document.getElementById("other").addEventListener("click", function () {
-    document.getElementById("opts").hidden = true; form.hidden = false; input.focus(); keepCatVisible(); setBack(closeOwn);
+    pickEl.hidden = true; form.hidden = false; input.focus(); keepCatVisible(); setBack(closeOwn);
   });
   document.getElementById("ownback").addEventListener("click", closeOwn);
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var v = input.value.trim();
     if (!v) { input.focus(); return; }
-    answerChoice(i, "custom:" + v.charAt(0).toUpperCase() + v.slice(1));
+    v = v.charAt(0).toUpperCase() + v.slice(1);
+    // Same as an existing option? Rank that one instead of adding a copy
+    var same = opts.filter(function (o) { return o.t.toLowerCase() === v.toLowerCase(); })[0];
+    var k = same ? same.k : "custom:" + v;
+    if (!same) draft.extra.push({ k: k, t: v });
+    if (draft.rank.indexOf(k) < 0) draft.rank.push(k);
+    ask(i);
   });
 }
 
@@ -431,10 +461,14 @@ function markStop(i, ok) {
   el.querySelector(".badge").innerHTML = ico(ok ? "sparkles" : "thought");
 }
 
-function answerChoice(i, key) {
-  var st = game.stops[i], a = AREAS[st.area], prio = labelOf(st.area, key), ok = key === st.agentKey;
-  game.results[i] = { ok: ok, you: stopOptText(st, key), sent: false, declined: false,
-    upd: ok ? null : { area: st.area, key: key, fix: "For " + a.about + ", put “" + prio + "” first", fixed: "For " + a.about + ", “" + prio + "” comes first." } };
+// The user's ranking against the agent's order for this area
+function answerRank(i, rank) {
+  var st = game.stops[i], a = AREAS[st.area], order = profile()[st.area].order, ok = sameOrder(rank, order);
+  var labels = rank.map(function (k) { return stopOptText(st, k); });
+  var q = function (t) { return "“" + t + "”"; };
+  game.results[i] = { ok: ok, rank: rank, you: labels.map(function (t, n) { return (n + 1) + ". " + t; }).join("  ·  "), sent: false, declined: false,
+    upd: ok ? null : { area: st.area, order: mergedOrder(rank, order), fix: "For " + a.about + ": " + labels.join(" › "),
+      fixed: "For " + a.about + ", " + q(labels[0]) + " comes first" + (labels.length > 1 ? ", then " + labels.slice(1).map(q).join(", ") : "") + "." } };
   markStop(i, ok);
   showReveal(i);
 }
@@ -450,7 +484,7 @@ function showReveal(i) {
     '<button class="btn small" id="yes">Yes, tell it</button><button class="btn ghost small" id="no">No</button></div></div>';
   openSheet(stopHead(st, i) +
     '<div class="react ' + (r.upd && !r.ok ? "new" : "ok") + '"><span class="catface big"></span><div><b>' + esc(line) + "</b>" +
-    '<span class="mine">You picked: ' + esc(r.you) + "</span>" + "</div></div>" + askHtml +
+    '<span class="mine">Your order: ' + esc(r.you) + "</span>" + "</div></div>" + askHtml +
     '<button class="btn" id="on">' + (last ? "Finish" : "Next question") + "</button>" +
     navRow([prevItem(i), r.sent ? null : ["redo", "← Change my answer"]]));
   wirePrev(i);

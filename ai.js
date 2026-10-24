@@ -58,13 +58,13 @@ const AI = {
     base.options.forEach(function (o) { baseObj.options[o[0]] = o[1]; });
     const tplObj = { q: "...", options: {}, icon: "..." };
     area.items.forEach(function (x) { tplObj.options[x[0]] = "..."; });
-    const context = st.type === "choice" ? "This week the user's agent did this: \"" + base.did + "\". " : "";
+    const context = st.ev ? "Lately the user's agent did this: \"" + st.ev.did + "\". " : "";
     const user = [
       "Area: " + area.name + " (" + area.about + "). " + context,
-      "Here is an everyday question with 4 options: " + JSON.stringify(baseObj),
-      "Write a FRESH variation of it: the same kind of everyday moment, but change small details (time, place, food, price, weather).",
-      "The question speaks to the user as \"you\", is at most 22 words and ends with a question mark. Never mention AI, an agent or a cat.",
-      "Keep each option's meaning: " + prios + ". Each option is a concrete choice of at most 9 words.",
+      "Here is an everyday question and its options: " + JSON.stringify(baseObj),
+      "Reword it in a fresh, friendly way. Keep the same meaning: the user will rank what matters to them.",
+      "The question speaks to the user as \"you\", is at most 18 words and ends with a question mark. Never mention AI, an agent or a cat.",
+      "Keep each option's meaning: " + prios + ". Each option is at most 5 words.",
       "Pick one icon from: " + AI.iconsFor(st) + ".",
       "Fill in this JSON and reply with it only: " + JSON.stringify(tplObj)
     ].join("\n");
@@ -103,12 +103,12 @@ const AI = {
       : (j.options && typeof j.options === "object" ? Object.keys(j.options).map(function (k) { return [k, j.options[k]]; }) : []);
     pairs.forEach(function (pair) {
       const k = String(pair[0] || "").toLowerCase(), t = pair[1];
-      if (!k || typeof t !== "string" || t.trim().length < 2 || t.length > 90 || t.trim() === "...") return;
+      if (!k || typeof t !== "string" || t.trim().length < 2 || t.length > 60 || t.trim() === "...") return;
       const hit = items.filter(function (x) { return x[0] === k || k.indexOf(x[0]) === 0 || x[0].indexOf(k) === 0 || x[1].toLowerCase().indexOf(k) >= 0; })[0];
       if (hit && !got[hit[0]]) got[hit[0]] = t.trim();
     });
     const have = items.filter(function (x) { return got[x[0]]; }).length;
-    if (have < 3) return null;
+    if (have < items.length - 1) return null;
     // Quality filter: no talk of AI/agents/cats, a real question, no repeated options
     const banned = /\b(ai|agent|agents|assistant|cat|cat's|chatbot)\b/i;
     const q = j.q.trim();
@@ -129,7 +129,6 @@ const AI = {
     for (let i = 0; i < stops.length; i++) {
       if (isCancelled && isCancelled()) break;
       const st = stops[i];
-      if (st.agentKey && st.agentKey.indexOf("custom:") === 0) continue; // a typed priority can't be one of 4 fixed keys
       if (AI.broken) break;
       const out = await AI.writeQuestion(st);
       if (out) { st.ai = out; st.icon = pickIcon(out.icon); made++; }
@@ -143,7 +142,7 @@ const AI = {
 
   // A short list of likely icons keeps the prompt small: the area's own group plus a few general ones
   iconsFor(st) {
-    const groups = { food: "Food", groceries: "Food", commute: "Travel", weekend: "Health and fun", chores: "Home", fitness: "Health and fun", gifts: "People" };
+    const groups = { cab: "Travel", movies: "Health and fun", icecream: "Food", clothes: "Shopping", homeservice: "Home", day: "Health and fun" };
     const keys = Object.keys(ICONS[groups[st.area]] || {});
     return keys.join(", ");
   },

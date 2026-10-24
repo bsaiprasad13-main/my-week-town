@@ -332,3 +332,12 @@ h2 .ic { width: 24px; height: 24px; }
 /* The cat thinking (in-browser AI) */
 .bar { height: 10px; border-radius: 999px; background: var(--soft); overflow: hidden; margin: 8px 0 6px; }
 .bar i { display: block; height: 100%; width: 3%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.3s; }
+
+/* Tap-to-rank answers */
+.opts.rank { grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+.opts.rank .opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; font-weight: 650; }
+.opts.rank .rn { position: static; flex: none; width: 26px; height: 26px; min-width: 0; border-radius: 50%; border: 2px solid var(--line); background: #fff; color: #fff; font-size: 0.8rem; font-weight: 800; display: grid; place-items: center; }
+.opts.rank .opt.picked { border-color: var(--accent); background: var(--accent-soft); }
+.opts.rank .opt.picked .rn { border-color: transparent; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.opts.rank .other { justify-content: center; gap: 6px; border-style: dashed; color: var(--muted); background: transparent; }
+.opts.rank .other .ic { width: 20px; height: 20px; }

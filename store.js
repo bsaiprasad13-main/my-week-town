@@ -12,7 +12,7 @@ var ST = {
     try { localStorage.setItem("mwt-" + k, JSON.stringify(v)); } catch (e) {}
   }
 };
-var DAY = 864e5, MIN_Q = 4, MAX_Q = 6;
+var DAY = 864e5, MAX_Q = 6;
 (function () {
   if (ST.get("dataVersion", 0) !== DATA_VERSION) {
     ["feed", "lastSync", "pending", "askedAreas", "askedEvents", "askedChecks", "syncs", "profile", "rules", "sessions", "simIdx"].forEach(function (k) {
@@ -52,10 +52,10 @@ function labelOf(area, k) {
   var it = AREAS[area].items.filter(function (x) { return x[0] === k; })[0];
   return it ? it[1] : k;
 }
-// Options for a question: the situation's 4 concrete choices, each standing for one priority
-function optionsFor(scnId, agentKey) {
+// Options for a question: the area's items, plus any own priorities ("Something else") the user already sent for that area
+function optionsFor(scnId) {
   var sc = SCN[scnId], items = sc.options.map(function (x) { return { k: x[0], t: x[1] }; });
-  if (agentKey && agentKey.indexOf("custom:") === 0) items[3] = { k: agentKey, t: labelOf(sc.area, agentKey) };
+  profile()[sc.area].order.forEach(function (k) { if (k.indexOf("custom:") === 0) items.push({ k: k, t: k.slice(7) }); });
   return items;
 }
 function optionText(scnId, k) {
@@ -63,6 +63,15 @@ function optionText(scnId, k) {
   var o = SCN[scnId].options.filter(function (x) { return x[0] === k; })[0];
   return o ? o[1] : k;
 }
+// Match rule: the user's #1 is the agent's #1, and the other options the user ranked come in the agent's order
+function sameOrder(rank, order) {
+  if (!rank.length || rank[0] !== order[0]) return false;
+  var pos = rank.map(function (k) { return order.indexOf(k); });
+  for (var i = 1; i < pos.length; i++) if (pos[i] < 0 || pos[i] < pos[i - 1]) return false;
+  return true;
+}
+// The agent's new order after an update: the user's ranking first, the rest keep the agent's order
+function mergedOrder(rank, order) { return rank.concat(order.filter(function (k) { return rank.indexOf(k) < 0; })); }
 // A situation turned into an agent event
 function fromScn(id, agentKey) {
   var sc = SCN[id];
@@ -92,7 +101,7 @@ function simulateActivity(count) {
   for (var i = 0; i < count; i++) {
     var id = SIM[(idx + i) % SIM.length], area = SCN[id].area, pr = p[area], top = pr.order[0];
     var ev = Object.assign({ id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), followedUpdate: pr.updatedAt || null }, fromScn(id, top));
-    ev.did = "Chose: " + optionText(id, top) + ".";
+    ev.did = AREAS[area].act + ", going by " + optionText(id, top).toLowerCase() + ".";
     f.push(ev);
   }
   var r = SIM_ROUTINE[idx % SIM_ROUTINE.length];
@@ -110,38 +119,42 @@ function prepareCatchUp() {
   var fetched = f.filter(function (e) { return e.at > from; });
   var fresh = fetched.filter(function (e) { return !e.routine; }).map(function (e) { return e.id; });
   var pending = ST.get("pending", []);
-  var queue = pending.concat(fresh.filter(function (id) { return pending.indexOf(id) < 0; }));
-  queue.sort(function (a, b) { return eventById(a).at - eventById(b).at; });
-  var take = queue.slice(0, MAX_Q), carried = queue.slice(MAX_Q);
-
-  var qs = take.map(function (id) { return { type: "choice", ev: eventById(id) }; });
-  // Too little new? Top up with quick taste checks from areas not checked lately
-  var checks = [];
-  if (qs.length < MIN_Q) {
-    var used = take.map(function (id) { return eventById(id).area; });
-    var asked = ST.get("askedChecks", {});
-    checks = CHECKS
-      .filter(function (id) { return used.indexOf(SCN[id].area) < 0; })
-      .sort(function (a, b) { return (asked[a] || 0) - (asked[b] || 0); })
-      .filter(function (id, k, arr) { return arr.map(function (x) { return SCN[x].area; }).indexOf(SCN[id].area) === k; }) // one per area
-      .slice(0, MIN_Q - qs.length);
-    checks.forEach(function (id) { qs.push({ type: "check", scn: id }); });
-  }
-  return { at: t, last: last, qs: qs, take: take, carried: carried, checks: checks, fetched: fetched.length, fresh: fresh.length,
-    choices: take.length };
+  var take = pending.concat(fresh.filter(function (id) { return pending.indexOf(id) < 0; }));
+  // Which areas the agent acted in, and when it first did
+  var first = {}, evs = {};
+  take.forEach(function (id) {
+    var e = eventById(id);
+    if (!e) return;
+    if (!(e.area in first) || e.at < first[e.area]) first[e.area] = e.at;
+    (evs[e.area] = evs[e.area] || []).push(id);
+  });
+  // Always the same 6 questions: areas with new activity first (oldest first), then the rest (asked longest ago first)
+  var asked = ST.get("askedChecks", {});
+  var areas = Object.keys(AREAS).sort(function (a, b) {
+    var ia = a in first, ib = b in first;
+    if (ia !== ib) return ia ? -1 : 1;
+    return ia ? first[a] - first[b] : (asked[a] || 0) - (asked[b] || 0);
+  }).slice(0, MAX_Q);
+  var qs = areas.map(function (a) {
+    var ids = evs[a] || [];
+    return { type: ids.length ? "choice" : "check", scn: AREAS[a].scn, evIds: ids, ev: ids.length ? eventById(ids[ids.length - 1]) : null };
+  });
+  var checks = qs.filter(function (q) { return q.type === "check"; }).map(function (q) { return q.scn; });
+  return { at: t, last: last, qs: qs, take: take, carried: [], checks: checks, fetched: fetched.length, fresh: fresh.length,
+    choices: qs.length - checks.length };
 }
 function logRun(plan, status) {
   var log = ST.get("syncs", []);
   log.push({ at: plan.at, from: plan.last, fetched: plan.fetched, crucial: plan.fresh, routine: plan.fetched - plan.fresh,
-    questions: plan.qs.length, choices: plan.take.length, checks: plan.checks.length, carried: plan.carried.length, status: status });
+    questions: plan.qs.length, choices: plan.choices, checks: plan.checks.length, carried: plan.carried.length, status: status });
   ST.set("syncs", log);
 }
 function commitCatchUp(plan) {
   var asked = ST.get("askedChecks", {});
-  plan.checks.forEach(function (id) { asked[id] = plan.at; });
+  plan.qs.forEach(function (q) { asked[SCN[q.scn].area] = plan.at; });
   ST.set("askedChecks", asked);
   ST.set("askedEvents", ST.get("askedEvents", []).concat(plan.take));
-  ST.set("pending", plan.carried);
+  ST.set("pending", []);
   logRun(plan, "used");
   ST.set("lastSync", plan.at);
 }

@@ -1,90 +1,39 @@
 // My Week Town: sample data that stands in for the user's personal AI agent, plus the app's content.
-var DATA_VERSION = 3; // bump when the sample data changes shape; old saved demo data is reset
+var DATA_VERSION = 4; // bump when the sample data changes shape; old saved demo data is reset
 
-// Everyday areas. items = the priorities behind each choice; agent = the agent's starting picture of the user, most important first.
+// The 6 questions, one per everyday area. items = the options (each one is a priority); agent = the agent's starting picture of the user, most important first.
+// act = how the agent's activity reads in the admin log.
 var AREAS = {
-  food: { name: "Dinner", about: "food on busy days", place: "Food street",
-    items: [["fast", "Fast"], ["healthy", "Healthy"], ["cheap", "Cheap"], ["taste", "Taste"]], agent: ["fast", "cheap", "taste", "healthy"] },
-  groceries: { name: "Groceries", about: "groceries", place: "Grocery market",
-    items: [["quick", "Quick delivery"], ["price", "Price"], ["fresh", "Freshness"], ["brand", "Brands I trust"]], agent: ["price", "quick", "brand", "fresh"] },
-  commute: { name: "Commute", about: "getting around", place: "Bus stop",
-    items: [["fast", "Getting there fast"], ["cheap", "Saving money"], ["comfy", "Comfort"], ["green", "Greener ways"]], agent: ["cheap", "fast", "comfy", "green"] },
-  weekend: { name: "Weekends", about: "free time", place: "Weekend park",
-    items: [["rest", "Rest"], ["friends", "Friends"], ["family", "Family"], ["new", "Something new"]], agent: ["rest", "family", "friends", "new"] },
-  chores: { name: "Chores", about: "chores", place: "Home corner",
-    items: [["time", "Saving time"], ["save", "Saving money"], ["self", "Doing it myself"], ["quality", "Done really well"]], agent: ["time", "save", "quality", "self"] },
-  fitness: { name: "Workouts", about: "staying fit", place: "Gym",
-    items: [["health", "Health"], ["rest", "Rest"], ["social", "Company"], ["cost", "Cost"]], agent: ["rest", "cost", "health", "social"] },
-  gifts: { name: "Gifts", about: "gifts", place: "Gift shop",
-    items: [["time", "Arrives on time"], ["personal", "Personal touch"], ["price", "Price"], ["useful", "Useful"]], agent: ["time", "price", "useful", "personal"] }
+  cab: { name: "Cab rides", about: "cab rides", place: "Cab stand", act: "Booked a cab",
+    items: [["price", "Low price"], ["fast", "Quick pickup"], ["comfort", "Comfortable ride"], ["safety", "Safety"]], agent: ["price", "fast", "comfort", "safety"] },
+  movies: { name: "Movies", about: "movie tickets", place: "Cinema", act: "Booked movie tickets",
+    items: [["near", "Close and easy to reach"], ["luxury", "Luxury and comfort"], ["price", "Low price"], ["view", "Best view of the screen"]], agent: ["near", "price", "view", "luxury"] },
+  icecream: { name: "Ice cream", about: "ice cream", place: "Ice cream cart", act: "Ordered ice cream",
+    items: [["nosugar", "No sugar"], ["price", "Low price"], ["brand", "Trusted brand"], ["natural", "Natural flavours"]], agent: ["price", "brand", "natural", "nosugar"] },
+  clothes: { name: "Clothes", about: "clothes shopping", place: "Clothes store", act: "Bought clothes",
+    items: [["fit", "Comfortable fit"], ["brand", "Brand"], ["looks", "Looks and style"], ["price", "Price"], ["reviews", "Reviews"]], agent: ["price", "reviews", "brand", "looks", "fit"] },
+  homeservice: { name: "Home services", about: "home services", place: "Helpers' corner", act: "Booked a home service",
+    items: [["trusted", "Trusted provider"], ["price", "Affordable price"], ["reviews", "Good reviews"], ["eta", "Arrives soon"]], agent: ["eta", "price", "reviews", "trusted"] },
+  day: { name: "Your day", about: "your day", place: "Town park", act: "Planned your day",
+    items: [["balance", "Work-life balance"], ["health", "Health first"], ["productive", "Productive"], ["chill", "Chill"]], agent: ["productive", "balance", "chill", "health"] }
 };
 
-// Everyday situations where one decision shows a clear priority. Each option maps to one priority (its key).
-// "did" is what the agent did when it faced this situation (admin only).
+// The same 6 questions every game. The options are the area's items; the user ranks as many as they like, plus "Something else".
+// "did" is a sample of what the agent did in that area (admin only).
 var SCN = {
-  F1: { area: "food", icon: "curry", q: "It's 9:30 pm and you're starving after a long day. What do you order?",
-    options: [["fast", "Biryani, here in 15 minutes"], ["healthy", "Dal-rice and salad, in 40 minutes"], ["cheap", "Whatever is cheapest tonight"], ["taste", "My favourite place, even if it takes an hour"]],
-    did: "Ordered biryani from the fastest place, ₹420." },
-  F2: { area: "food", icon: "salad", q: "Lunch break: 30 minutes, then a meeting. What do you grab?",
-    options: [["fast", "Whatever is quickest nearby"], ["healthy", "A salad bowl, even with a queue"], ["cheap", "Office canteen, ₹60"], ["taste", "The good dosa place, and rush back"]],
-    did: "Sent a sandwich to your desk." },
-  F3: { area: "food", icon: "pan", q: "Sunday dinner at home. What's the plan?",
-    options: [["taste", "Order from my favourite place"], ["healthy", "Cook something light"], ["cheap", "Leftovers, zero spend"], ["fast", "Order the fastest thing"]],
-    did: "Ordered the fastest option." },
-  G1: { area: "groceries", icon: "cart", q: "Milk and veggies are running out. When should they come?",
-    options: [["quick", "In 10 minutes, with a ₹49 fee"], ["price", "Tomorrow morning, free"], ["fresh", "I'll pick them at the market myself"], ["brand", "Whenever my usual brands are in stock"]],
-    did: "Scheduled them for tomorrow to skip the ₹49 fee." },
-  G2: { area: "groceries", icon: "apple", q: "The mangoes look a bit tired today. What do you do?",
-    options: [["fresh", "Pay more for the fresh farm box"], ["price", "Take the discounted ones"], ["quick", "Whatever comes fastest"], ["brand", "Only from the store I trust"]],
-    did: "Bought the discounted mangoes." },
-  G3: { area: "groceries", icon: "cart", q: "Your usual rice brand is out of stock. Now what?",
-    options: [["brand", "Wait until it's back"], ["price", "Grab the cheapest one"], ["fresh", "Try a fresher local one"], ["quick", "Whatever can arrive today"]],
-    did: "Picked the cheapest one." },
-  C1: { area: "commute", icon: "taxi", q: "Monday, 8:40 am, and you're a bit late. How do you get to work?",
-    options: [["fast", "Cab: 25 minutes, ₹320"], ["cheap", "Metro: 35 minutes, ₹40"], ["comfy", "Wait for an AC cab with space"], ["green", "Bike-share, I'll sweat a little"]],
-    did: "Booked the metro to save ₹280." },
-  C2: { area: "commute", icon: "umbrella", q: "It's pouring, and the office is 3 km away. How do you go?",
-    options: [["comfy", "A cab, I want to stay dry"], ["cheap", "Bus, it's ₹15"], ["fast", "Whatever leaves first"], ["green", "Walk with an umbrella"]],
-    did: "Booked a shared cab." },
-  C3: { area: "commute", icon: "train", q: "Friday evening, heading home, and cabs cost double. What do you do?",
-    options: [["cheap", "Metro, skip the surge"], ["fast", "Pay double, I want to get home"], ["comfy", "Wait 30 minutes for normal prices"], ["green", "Cycle home"]],
-    did: "Waited for normal prices." },
-  W1: { area: "weekend", icon: "sun", q: "Free Saturday! Friends want brunch, family wants lunch, and you're tired. What wins?",
-    options: [["rest", "Sleep in, cancel everything"], ["friends", "Brunch with friends"], ["family", "Lunch with family"], ["new", "That new trek everyone talks about"]],
-    did: "Kept your Saturday empty." },
-  W2: { area: "weekend", icon: "popcorn", q: "Sunday evening and nothing's planned. What sounds best?",
-    options: [["rest", "Couch and a movie"], ["friends", "Call friends over"], ["family", "Visit family"], ["new", "A class I've never tried"]],
-    did: "Queued a movie for you." },
-  W3: { area: "weekend", icon: "camping", q: "A long weekend is coming. What do you want from it?",
-    options: [["new", "Somewhere I've never been"], ["rest", "Stay home and recharge"], ["family", "Time with my parents"], ["friends", "A trip with friends"]],
-    did: "Planned a quiet weekend at home." },
-  H1: { area: "chores", icon: "home", q: "The laundry pile is huge. What do you do?",
-    options: [["time", "Pickup service today, ₹250"], ["save", "Run the machine tonight"], ["self", "Do it on Sunday, I like the routine"], ["quality", "The good dry cleaner, ₹600"]],
-    did: "Booked laundry pickup for ₹250." },
-  H2: { area: "chores", icon: "toolbox", q: "The kitchen tap is dripping. How do you handle it?",
-    options: [["time", "A plumber today, ₹400"], ["save", "Leave it, it's just a drip"], ["self", "Watch a video and fix it myself"], ["quality", "The best-rated plumber, even next week"]],
-    did: "Booked the first available plumber, ₹400." },
-  H3: { area: "chores", icon: "plant", q: "Weekly cleaning: how should it happen?",
-    options: [["time", "Hire help, 2 hours, ₹500"], ["save", "Do it myself, save the money"], ["self", "Do it myself, it calms me"], ["quality", "A deep-clean service once a month"]],
-    did: "Booked weekly cleaning help." },
-  X1: { area: "fitness", icon: "sneaker", q: "6 am alarm. Gym or sleep?",
-    options: [["health", "Gym, I'll feel better after"], ["rest", "Sleep, I need it"], ["social", "Only if my friend comes too"], ["cost", "Skip the gym, run outside for free"]],
-    did: "Snoozed your alarm." },
-  X2: { area: "fitness", icon: "sneaker", q: "Starting a new fitness plan this month. Which one?",
-    options: [["health", "A trainer, even if it's pricey"], ["social", "A group class with friends"], ["cost", "Free home workouts"], ["rest", "Just evening walks, no pressure"]],
-    did: "Picked free home workouts." },
-  T1: { area: "gifts", icon: "gift", q: "Arjun's birthday is tomorrow. Which gift?",
-    options: [["time", "A ₹1,200 mug that arrives on time"], ["personal", "A handmade photo book, 2 days late"], ["price", "Something under ₹500"], ["useful", "Something he actually needs"]],
-    did: "Ordered the mug that arrives on time." },
-  T2: { area: "gifts", icon: "bouquet", q: "Mom's anniversary is next week. What do you give?",
-    options: [["personal", "A letter I write myself"], ["useful", "Something she'll use every day"], ["price", "A small sweet treat"], ["time", "Flowers, delivered on the day"]],
-    did: "Scheduled flowers for the day." }
+  CAB: { area: "cab", icon: "taxi", q: "Booking a cab. What matters most to you?", did: "Booked the cheapest cab, ₹180, with a 12-minute wait." },
+  MOV: { area: "movies", icon: "clapper", q: "Booking movie tickets. What do you look for?", did: "Booked 2 seats at the nearest theatre, front rows." },
+  ICE: { area: "icecream", icon: "icecream", q: "Ordering ice cream. What matters to you?", did: "Ordered a ₹99 tub, the cheapest one on offer." },
+  CLO: { area: "clothes", icon: "shirt", q: "Shopping for clothes. What matters most?", did: "Bought a ₹699 shirt from the price-drop sale." },
+  HOM: { area: "homeservice", icon: "toolbox", q: "Booking a home service (cleaning, plumber, repair). How do you choose?", did: "Booked the first cleaner who could come in 20 minutes." },
+  DAY: { area: "day", icon: "sun", q: "How do you like your day to go?", did: "Packed your Tuesday with 7 meetings and a late work slot." }
 };
+Object.keys(SCN).forEach(function (id) { SCN[id].options = AREAS[SCN[id].area].items; AREAS[SCN[id].area].scn = id; });
 
 // Icon library. For each question the model picks the closest key; FALLBACK_ICON when nothing fits.
 var ICONS = {
-  Shopping: { tv: "TV", laptop: "Laptop", phone: "Phone", headphone: "Headphones", camera: "Camera", watch: "Watch", glasses: "Glasses", cart: "Groceries", shirt: "Clothes", sneaker: "Shoes", ring: "Jewellery", card: "Card payment" },
-  Food: { takeout: "Takeaway", pizza: "Pizza", curry: "Indian meal", pasta: "Pasta", salad: "Healthy food", apple: "Fruit", coffee: "Coffee", cookie: "Snacks", cupcake: "Dessert", cake: "Birthday cake", pan: "Cooking" },
+  Shopping: { tv: "TV", laptop: "Laptop", phone: "Phone", headphone: "Headphones", camera: "Camera", watch: "Watch", glasses: "Glasses", cart: "Groceries", shirt: "Clothes", dress: "Fashion", sneaker: "Shoes", ring: "Jewellery", card: "Card payment" },
+  Food: { takeout: "Takeaway", pizza: "Pizza", curry: "Indian meal", pasta: "Pasta", salad: "Healthy food", apple: "Fruit", coffee: "Coffee", cookie: "Snacks", cupcake: "Dessert", icecream: "Ice cream", cake: "Birthday cake", pan: "Cooking" },
   Travel: { plane: "Flight", train: "Train", bus: "Bus", taxi: "Cab", car: "Car", bicycle: "Bicycle", hotel: "Hotel", luggage: "Luggage", beach: "Beach trip", camping: "Camping", compass: "Directions", ticket: "Tickets" },
   Home: { home: "Home", sofa: "Sofa", bed: "Bed", chair: "Chair", bulb: "Lamp", lamp: "Decor", plant: "Plants", toolbox: "Repairs", wifi: "Wi-Fi" },
   People: { gift: "Gift", bouquet: "Flowers", letter: "Message", party: "Party", balloon: "Celebration", babybottle: "Baby", dog: "Pet", handshake: "Friends" },
@@ -104,26 +53,22 @@ var CAT_NEW = ["Ooh, noted!", "Interesting! Noted.", "Oh! I didn't see that comi
 // What the agent did before the very first catch-up (placed in the last 7 days on first run).
 var SEED = [
   { daysAgo: 6.2, routine: true, label: "Bills", did: "Paid the electricity bill, ₹2,140", skip: "Routine. Same as every month." },
-  { daysAgo: 5.4, scn: "C1", agentKey: "cheap" },
+  { daysAgo: 5.4, scn: "CAB", agentKey: "price" },
   { daysAgo: 4.8, routine: true, label: "Health", did: "Refilled your vitamin D tablets", skip: "Routine refill." },
-  { daysAgo: 4.3, scn: "G1", agentKey: "price" },
-  { daysAgo: 3.6, scn: "T1", agentKey: "time" },
+  { daysAgo: 4.3, scn: "ICE", agentKey: "price" },
+  { daysAgo: 3.6, scn: "MOV", agentKey: "near" },
   { daysAgo: 2.4, routine: true, label: "Work", did: "Moved 9 meetings and replied to 37 emails", skip: "Routine work admin." },
-  { daysAgo: 1.8, scn: "H1", agentKey: "time" },
-  { daysAgo: 1.1, scn: "F1", agentKey: "fast" },
+  { daysAgo: 1.8, scn: "HOM", agentKey: "eta" },
   { daysAgo: 0.6, routine: true, label: "Groceries", did: "Reordered the usual groceries, ₹1,850", skip: "Same list as last week." }
 ];
 
 // New things the agent can "do" when the admin simulates fresh activity (it chooses by its current picture of the user).
-var SIM = ["X1", "F2", "C2", "W1", "G2", "H2", "T2", "W2"];
+var SIM = ["DAY", "CLO", "CAB", "ICE", "HOM", "MOV"];
 var SIM_ROUTINE = [
   { label: "Bills", did: "Paid the phone bill, ₹799", skip: "Routine. Same as every month." },
   { label: "Work", did: "Summarised 3 work reports", skip: "Routine work admin." },
   { label: "Health", did: "Booked your 6-monthly dentist check-up", skip: "Routine." }
 ];
-
-// Fun checks: asked when little or nothing new happened. Compared with the agent's current picture of the user.
-var CHECKS = ["W3", "F3", "C3", "G3", "H3", "X2", "W2", "T2"];
 
 // Free, open-source models that run inside the browser (WebLLM). Downloaded once, then cached on the device.
 var AI_MODELS = [
@@ -137,29 +82,28 @@ var MODEL = {
   intro: "Each time the user starts a game, a fresh AI model with no memory reads what the user's agent did since the last successful catch-up and prepares the questions. These are its instructions.",
   text: [
     "WHO YOU ARE",
-    "- You prepare one short game in which a curious cat asks the user what they'd do.",
-    "- You have no memory. You only see the agent's log since the last successful catch-up, the agent's current picture of the user, and the areas checked recently.",
+    "- You prepare one short game in which a curious cat asks the user what matters to them.",
+    "- You have no memory. You only see the agent's log since the last successful catch-up and the agent's current picture of the user.",
     "",
     "STEP 1: CATCH UP",
     "- Read only what the agent did after the last successful catch-up time.",
-    "- Keep everyday choices that say something about the user's priorities (food, groceries, getting around, free time, chores, fitness, small gifts). Skip routine tasks and rare big purchases.",
-    "- Choices you can't fit this time wait for the next game.",
+    "- Note which of the 6 areas the agent acted in: cab rides, movie tickets, ice cream, clothes shopping, home services, the user's day. Skip routine tasks.",
     "",
-    "STEP 2: PICK THE QUESTIONS",
-    "- 4 to 6 questions per game. Never more than 6.",
-    "- New choices first, oldest first. If fewer than 4 are new, add fun checks from areas not asked recently.",
+    "STEP 2: ORDER THE QUESTIONS",
+    "- Always the same 6 questions, one per area.",
+    "- Areas the agent acted in come first, oldest first. Then the rest, the ones asked longest ago first.",
     "",
-    "STEP 3: WRITE EACH QUESTION, AS THE CAT",
-    "- Describe one small everyday situation where a single decision shows a clear priority (time vs money, healthy vs fast, rest vs friends).",
-    "- Avoid questions where many factors matter at once (\"what matters in a TV?\").",
-    "- Exactly 4 concrete options, each standing for one priority. One must be the agent's real choice. The app adds a 5th: \"Something else\".",
-    "- One answer only. Never ask the user to rank or pick several.",
+    "STEP 3: ASK EACH QUESTION, AS THE CAT",
+    "- Keep the question short and everyday. You may reword it, but keep its meaning and keep every option.",
+    "- The user taps the options in order of what matters to them. Ranking is optional: one option, a few, or all.",
+    "- The app adds \"Something else\" so the user can type their own priority and rank it too.",
     "- Never mention the AI agent in a question.",
     "- Pick one icon from the icon library. If nothing fits, use the fallback icon.",
     "",
     "STEP 4: AFTER THE ANSWER",
-    "- Same as the agent's choice: the cat cheers (\"I knew it!\").",
-    "- Different: \"Ooh, noted! Should I let your AI know?\" Yes sends it to the agent right away; No keeps it private.",
+    "- Compare the user's ranking with the agent's order for that area.",
+    "- Match: the user's #1 is the agent's #1, and the other options the user ranked come in the same order as the agent's. The cat cheers (\"I knew it!\").",
+    "- No match: \"Ooh, noted! Should I let your AI know?\" Yes sends the user's ranking right away (ranked options first, the rest keep the agent's order). No keeps it private.",
     "- Show no other details about the agent.",
     "",
     "RULES",
