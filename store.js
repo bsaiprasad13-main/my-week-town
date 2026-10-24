@@ -168,10 +168,13 @@ function returnUnanswered(ids) {
 }
 
 /* ---------- Sending the user's chosen updates to the agent ---------- */
+// Returns what's needed to take the updates back (undoUpdate)
 function sendUpdates(list) {
   var p = profile(), rules = ST.get("rules", []), t = now();
+  var before = { at: t, areas: {} };
   list.forEach(function (u) {
     var pr = p[u.area];
+    if (!before.areas[u.area]) before.areas[u.area] = { order: pr.order.slice(), updatedAt: pr.updatedAt };
     if (u.order) pr.order = u.order.slice();
     else pr.order = [u.key].concat(pr.order.filter(function (k) { return k !== u.key; }));
     pr.updatedAt = t;
@@ -179,6 +182,15 @@ function sendUpdates(list) {
   });
   ST.set("profile", p);
   ST.set("rules", rules);
+  return before;
+}
+// The user went back after "Yes": the agent's picture returns to what it was, and the update leaves the log
+function undoUpdate(before) {
+  if (!before) return;
+  var p = profile();
+  Object.keys(before.areas).forEach(function (a) { p[a].order = before.areas[a].order; p[a].updatedAt = before.areas[a].updatedAt; });
+  ST.set("profile", p);
+  ST.set("rules", ST.get("rules", []).filter(function (r) { return !(r.at === before.at && r.area in before.areas); }));
 }
 function saveSession(r) { var s = ST.get("sessions", []); s.push(r); ST.set("sessions", s); }
 function resetDemo() {

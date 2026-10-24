@@ -341,3 +341,13 @@ h2 .ic { width: 24px; height: 24px; }
 .opts.rank .opt.picked .rn { border-color: transparent; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
 .opts.rank .other { justify-content: center; gap: 6px; border-style: dashed; color: var(--muted); background: transparent; }
 .opts.rank .other .ic { width: 20px; height: 20px; }
+
+/* Confirmation after Yes / No, with Back to choose again */
+.confirm { display: flex; gap: 10px; align-items: flex-start; border-radius: 16px; padding: 12px 14px; margin-bottom: 4px; }
+.confirm.ok { background: var(--ok-bg); }
+.confirm.quiet { background: var(--soft); border: 1px solid var(--line); }
+.confirm > .ic { width: 28px; height: 28px; flex: none; margin-top: 2px; }
+.confirm b { display: block; color: var(--text); }
+.confirm.ok b { color: var(--ok-text); }
+.confirm span { display: block; color: var(--muted); font-size: 0.9rem; margin-top: 2px; }
+.confirm .back { margin: 8px 0 0; background: #fff; border: 1px solid var(--line); padding: 6px 12px; }

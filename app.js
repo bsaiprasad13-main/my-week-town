@@ -478,8 +478,11 @@ function showReveal(i) {
   var r = game.results[i], last = i === game.stops.length - 1, st = game.stops[i];
   var line = r.ok && !r.upd ? pick(CAT_MATCH, i) : r.ok ? pick(CAT_MATCH, i) : pick(CAT_NEW, i);
   var askHtml = "";
-  if (r.upd && r.sent) askHtml = '<p class="done">' + ico("check") + "Done! Your AI knows now.</p>";
-  else if (r.upd && r.declined) askHtml = '<p class="done quiet">' + ico("thought") + "Okay, it stays between us.</p>";
+  // After Yes or No: a clear confirmation, with Back to choose again
+  if (r.upd && r.sent) askHtml = '<div class="confirm ok" id="confirm">' + ico("check") + '<div><b>Done! Your AI knows now.</b><span>' + esc(r.upd.fixed) + "</span>" +
+    '<button class="back" id="undo">← Back</button></div></div>';
+  else if (r.upd && r.declined) askHtml = '<div class="confirm quiet" id="confirm">' + ico("thought") + "<div><b>Okay, I won't tell your AI.</b><span>Your answer stays between us.</span>" +
+    '<button class="back" id="undo">← Back</button></div></div>';
   else if (r.upd) askHtml = '<div class="askai" id="askai"><p>Should I let your AI know?</p><div class="yn">' +
     '<button class="btn small" id="yes">Yes, tell it</button><button class="btn ghost small" id="no">No</button></div></div>';
   openSheet(stopHead(st, i) +
@@ -497,9 +500,17 @@ function showReveal(i) {
   };
   var rb = document.getElementById("redo");
   if (rb) rb.addEventListener("click", redo);
-  setBack(r.sent ? (i > 0 ? function () { goStop(i - 1); } : goHome) : redo);
+  // Back from a confirmation returns to the Yes/No question (and takes a sent update back)
+  var undo = function () {
+    if (r.sent) { undoUpdate(r.undo); r.sent = false; r.undo = null; }
+    r.declined = false;
+    showReveal(i);
+  };
+  var ub = document.getElementById("undo");
+  if (ub) ub.addEventListener("click", undo);
+  setBack(r.sent || r.declined ? undo : redo);
   var yes = document.getElementById("yes"), no = document.getElementById("no");
-  if (yes) yes.addEventListener("click", function () { sendUpdates([r.upd]); r.sent = true; showReveal(i); });
+  if (yes) yes.addEventListener("click", function () { r.undo = sendUpdates([r.upd]); r.sent = true; showReveal(i); });
   if (no) no.addEventListener("click", function () { r.declined = true; showReveal(i); });
   document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i = i + 1; setTimeout(next, 300); });
 }
