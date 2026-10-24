@@ -4,11 +4,22 @@ It's 2040, and your AI agent makes most of your choices. My Week Town is a short
 
 Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone width).
 
-## Two interfaces
-| Page | Who | What it shows |
+## Two sections, one app
+| Section | Who sees it | What's in it |
 |---|---|---|
-| `index.html` | The user | The game only. No agent data, no model, no instructions |
-| `admin.html` | The maintainer | Catch-up log, the agent's raw data, the agent's picture of the user, updates received, games played, editable model instructions, and demo controls |
+| **User** | Everyone (user and admin) | The game only. No agent data, no model, no instructions |
+| **Admin** | Only the admin role | Overview, then detail pages: catch-up log, data from the agent, the agent's picture of the user, updates and games, editable model instructions. Plus demo controls |
+
+- **Role switch:** "Switch to admin" in the header (demo only, not secure). As admin, the header shows **User | Admin** tabs. "Exit admin" or "Switch to user role" goes back. `admin.html` opens the app in the admin role.
+
+## Going back, on every screen
+- **Home** button in the header (asks to confirm mid-game; unanswered choices wait for the next game).
+- **Catch-up result:** "← Back" to home. That catch-up doesn't count, so nothing is skipped.
+- **Question and reveal:** "← Previous stop" (jumps back instantly), "← Change my answer", and "← Back" from the typed answer.
+- **Taste check:** "↺ Start over" and "← Previous stop".
+- **Town hall:** "← Back to last stop".
+- **Admin detail pages:** "← Back to overview".
+- The phone/browser back button does the same as the on-screen back.
 
 ## How a game works
 1. **Wake up the cat.** The app catches up with the agent, fetching only what happened **after the last successful catch-up** (the first run looks at the last 7 days). Each run is logged with its date and time.
@@ -23,13 +34,13 @@ Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone wid
 ## Trying the full loop (demo)
 1. Play once in `index.html`, then send a few updates.
 2. Play again right away: nothing new, so you get taste checks.
-3. In `admin.html`, press **Simulate new agent activity**, then play again. The agent now chooses by your updates.
-4. **Reset demo** in `admin.html` starts over.
+3. Switch to admin, open the **Admin** tab and press **Simulate new agent activity**. Go to the **User** tab and play again: the agent now chooses by your updates.
+4. **Reset demo** in the Admin tab starts over.
 
-Data is saved in the browser (localStorage), shared by both pages on the same site.
+Data is saved in the browser (localStorage).
 
 ## What is simulated
-Sample data (`data.js`) stands in for the personal AI agent. `store.js` holds the catch-up, question building and update logic used by both pages. In the real product, a fresh AI model with no memory prepares each game from the agent's log, following the instructions in the admin page.
+Sample data (`data.js`) stands in for the personal AI agent. `store.js` holds the catch-up, question building and update logic; `app.js` is the game; `admin.js` is the role switch, tabs and admin section. In the real product, a fresh AI model with no memory prepares each game from the agent's log, following the instructions in the admin page.
 
 ## Credits
 3D icons: [Fluent Emoji](https://github.com/microsoft/fluentui-emoji) by Microsoft, MIT License (see `icons-LICENSE.txt`). Cat: [oneko.js](https://github.com/adryd325/oneko.js) by adryd, MIT License (see `oneko-LICENSE.txt`).

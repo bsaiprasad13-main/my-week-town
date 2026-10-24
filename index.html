@@ -6,13 +6,16 @@
   <title>My Week Town</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
+  <link rel="stylesheet" href="admin.css?v=12">
 </head>
 <body>
   <header class="top">
     <span class="brand"><img src="icons/home.png" alt="">My Week Town</span>
     <span class="right">
-      <span class="pill" id="status">Sunday</span>
+      <span class="pill" id="status">Today</span>
+      <button class="pill btnpill iconbtn" id="homebtn" title="Home" aria-label="Home"><img src="icons/home.png" alt=""></button>
+      <span id="rolebox"></span>
     </span>
   </header>
 
@@ -20,10 +23,12 @@
 
   <section class="sheet" id="sheet" aria-live="polite"></section>
   <section class="finale" id="finale" hidden></section>
+  <section class="adminview" id="adminview" hidden></section>
 
   <!-- Icons: Fluent Emoji 3D by Microsoft, MIT (icons-LICENSE.txt). Cat: oneko by adryd, MIT (oneko-LICENSE.txt) -->
-  <script src="data.js?v=11"></script>
-  <script src="store.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <script src="data.js?v=12"></script>
+  <script src="store.js?v=12"></script>
+  <script src="app.js?v=12"></script>
+  <script src="admin.js?v=12"></script>
 </body>
 </html>

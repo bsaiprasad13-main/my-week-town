@@ -70,7 +70,7 @@ function simulateActivity(count) {
   var after = Math.max(ST.get("lastSync", 0) || 0, t - 5 * 60000); // new activity always lands after the last catch-up
   for (var i = 0; i < count; i++) {
     var tpl = SIM[(idx + i) % SIM.length], pr = p[tpl.area], top = pr.order[0];
-    f.push({ id: "n" + t + "-" + i, at: Math.min(t, after + (i + 1) * 1000), area: tpl.area, choice: tpl.choice, agentKey: top,
+    f.push({ id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), area: tpl.area, choice: tpl.choice, agentKey: top,
       did: tpl.did + " It went for " + labelOf(tpl.area, top).toLowerCase() + ".",
       question: tpl.question, followedUpdate: pr.updatedAt || null });
   }
@@ -81,10 +81,12 @@ function simulateActivity(count) {
 }
 
 /* ---------- Catch-up: runs every time the user starts a game ---------- */
-function catchUp() {
+// prepareCatchUp() fetches and plans the game without changing anything.
+// commitCatchUp() runs when the user starts walking; cancelCatchUp() when they go back instead.
+function prepareCatchUp() {
   var t = now(), last = ST.get("lastSync", null), f = feed();
   var from = last || t - 7 * DAY;
-  var fetched = f.filter(function (e) { return e.at > from && e.at <= t; });
+  var fetched = f.filter(function (e) { return e.at > from; });
   var fresh = fetched.filter(function (e) { return !e.routine; }).map(function (e) { return e.id; });
   var pending = ST.get("pending", []);
   var queue = pending.concat(fresh.filter(function (id) { return pending.indexOf(id) < 0; }));
@@ -93,26 +95,41 @@ function catchUp() {
 
   var qs = take.map(function (id) { return { type: "choice", ev: eventById(id) }; });
   // Too little new? Top up with quick taste checks from areas not checked lately
+  var checks = [];
   if (qs.length < MIN_Q) {
     var used = take.map(function (id) { return eventById(id).area; });
     var asked = ST.get("askedAreas", {});
-    Object.keys(REFRESH)
+    checks = Object.keys(REFRESH)
       .filter(function (a) { return used.indexOf(a) < 0; })
       .sort(function (a, b) { return (asked[a] || 0) - (asked[b] || 0); })
-      .slice(0, MIN_Q - qs.length)
-      .forEach(function (a) { qs.push({ type: "rank", area: a }); asked[a] = t; });
-    ST.set("askedAreas", asked);
+      .slice(0, MIN_Q - qs.length);
+    checks.forEach(function (a) { qs.push({ type: "rank", area: a }); });
   }
-
-  var asked2 = ST.get("askedEvents", []);
-  ST.set("askedEvents", asked2.concat(take));
-  ST.set("pending", carried);
+  return { at: t, last: last, qs: qs, take: take, carried: carried, checks: checks, fetched: fetched.length, fresh: fresh.length,
+    choices: take.length };
+}
+function logRun(plan, status) {
   var log = ST.get("syncs", []);
-  log.push({ at: t, from: last, fetched: fetched.length, crucial: fresh.length, routine: fetched.length - fresh.length,
-    questions: qs.length, choices: take.length, checks: qs.length - take.length, carried: carried.length, ok: true });
+  log.push({ at: plan.at, from: plan.last, fetched: plan.fetched, crucial: plan.fresh, routine: plan.fetched - plan.fresh,
+    questions: plan.qs.length, choices: plan.take.length, checks: plan.checks.length, carried: plan.carried.length, status: status });
   ST.set("syncs", log);
-  ST.set("lastSync", t);
-  return { qs: qs, last: last, fresh: fresh.length, choices: take.length, carried: carried.length };
+}
+function commitCatchUp(plan) {
+  var asked = ST.get("askedAreas", {});
+  plan.checks.forEach(function (a) { asked[a] = plan.at; });
+  ST.set("askedAreas", asked);
+  ST.set("askedEvents", ST.get("askedEvents", []).concat(plan.take));
+  ST.set("pending", plan.carried);
+  logRun(plan, "used");
+  ST.set("lastSync", plan.at);
+}
+// The user went back before playing: nothing counts, the next game fetches the same window again
+function cancelCatchUp(plan) { logRun(plan, "not played"); }
+// The user left mid-game: choices they didn't answer go back to the front of the queue
+function returnUnanswered(ids) {
+  if (!ids.length) return;
+  ST.set("pending", ids.concat(ST.get("pending", []).filter(function (id) { return ids.indexOf(id) < 0; })));
+  ST.set("askedEvents", ST.get("askedEvents", []).filter(function (id) { return ids.indexOf(id) < 0; }));
 }
 
 /* ---------- Sending the user's chosen updates to the agent ---------- */

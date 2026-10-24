@@ -225,19 +225,31 @@ function place(st, i) {
   return '<div class="kicker"><span class="kplace">' + ico(st.icon) + esc(st.place) + '</span><span class="count">' + (i + 1) + " of " + game.stops.length + "</span></div>";
 }
 
+/* ---------- Going back ---------- */
+// Every screen sets what "back" means. The phone/browser back button does the same thing.
+var backFn = null;
+function setBack(fn) {
+  backFn = fn;
+  if (fn) { try { history.pushState({ mwt: 1 }, ""); } catch (e) {} }
+}
+window.addEventListener("popstate", function () { if (backFn && !document.body.classList.contains("in-admin")) backFn(); });
+function navRow(items) {
+  return '<div class="navrow">' + items.filter(Boolean).map(function (x) { return '<button class="back" id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>";
+}
+
 /* ---------- The game ---------- */
 // game.stops: one per question. A stop is { type: "choice", ev } or { type: "rank", area }, plus icon and place.
-
 function stopsFrom(qs) {
   return qs.map(function (q) {
     var a = AREAS[q.type === "choice" ? q.ev.area : q.area];
     return Object.assign({ icon: a.icon, place: a.place }, q);
   });
 }
+function inGame() { return game && game.playing && !game.done; }
 
-// First screen: the cat sleeps at home, nothing is fetched yet
+// Home: the cat sleeps, nothing is fetched yet
 function start() {
-  game = { stops: [], i: 0, results: [] };
+  game = { stops: [], i: 0, results: [], playing: false };
   game.L = layout(0);
   finale.hidden = true;
   drawTown();
@@ -253,48 +265,89 @@ function start() {
     " Wake up the cat: it'll check what your agent did since then, and ask you a few quick questions to see if it still gets you.</p>" +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>", true);
   document.getElementById("go").addEventListener("click", syncing);
+  setBack(null);
 }
 
-// The cat checks in with the agent, then the town is built from what it found
+// Leave the game from anywhere (Home button). Unanswered choices wait for the next game.
+function goHome() {
+  if (inGame() && !confirm("Leave this game? Answers you haven't sent won't be kept.")) return;
+  if (inGame()) returnUnanswered(game.stops.filter(function (s, k) { return s.type === "choice" && !game.results[k]; }).map(function (s) { return s.ev.id; }));
+  if (game && game.plan && !game.playing) cancelCatchUp(game.plan);
+  start();
+}
+document.getElementById("homebtn").addEventListener("click", goHome);
+
+// The cat checks in with the agent and plans the game. Nothing counts until the user starts walking.
 function syncing() {
   cat.mode = "alert";
   document.getElementById("zz").classList.remove("on");
   openSheet('<p class="kicker">Catching up</p><h2>' + ico("robot") + " Checking in with your agent…</h2>" +
     '<p class="lead">It\'s a chatty one. Give it a second.</p><div class="dots"><i></i><i></i><i></i></div>');
+  setBack(null);
   setTimeout(function () {
-    var r = catchUp();
-    game.stops = stopsFrom(r.qs);
+    var plan = prepareCatchUp();
+    game.plan = plan;
+    game.stops = stopsFrom(plan.qs);
     game.L = layout(game.stops.length);
     drawTown();
     cat.mode = "idle";
-    var checks = r.qs.length - r.choices;
-    var since = r.last ? "your last catch-up (" + ago(r.last) + ")" : "the last 7 days";
+    var checks = plan.checks.length, total = plan.choices + plan.carried.length;
+    var since = plan.last ? "your last catch-up (" + ago(plan.last) + ")" : "the last 7 days";
     var head, lead;
-    if (r.choices) {
-      head = (r.last ? "Since " + since : "In the last 7 days") + ", your agent made <span class=\"hl\">" + (r.choices + r.carried) + " crucial choice" + (r.choices + r.carried === 1 ? "" : "s") + "</span>.";
+    if (plan.choices) {
+      head = (plan.last ? "Since " + since : "In the last 7 days") + ", your agent made <span class=\"hl\">" + total + " crucial choice" + (total === 1 ? "" : "s") + "</span>.";
       lead = "Let's see if it still chooses like you." + (checks ? " Plus " + checks + " quick taste check" + (checks === 1 ? "" : "s") + " to keep it sharp." : "") +
-        (r.carried ? " " + r.carried + " more will wait for your next game." : "");
+        (plan.carried.length ? " " + plan.carried.length + " more will wait for your next game." : "");
     } else {
       head = "Nothing new since " + since + ".";
       lead = "Your agent has been napping too. So the cat has " + checks + " quick taste checks, to see if what matters to you has changed.";
     }
     statusEl.textContent = game.stops.length + " stops";
     openSheet('<p class="kicker">Caught up ' + ico("check") + "</p><h1>" + head + "</h1><p class=\"lead\">" + lead + "</p>" +
-      '<button class="btn" id="walk">' + ico("sparkles") + "Let's go</button>");
-    document.getElementById("walk").addEventListener("click", function () { closeSheet(); setTimeout(next, 350); });
+      '<button class="btn" id="walk">' + ico("sparkles") + "Let's go</button>" + navRow([["cback", "← Back"]]));
+    var back = function () { cancelCatchUp(plan); start(); };
+    document.getElementById("cback").addEventListener("click", back);
+    setBack(back);
+    document.getElementById("walk").addEventListener("click", function () {
+      commitCatchUp(plan);
+      game.playing = true;
+      closeSheet();
+      setTimeout(next, 350);
+    });
   }, reduceMotion ? 50 : 1400);
 }
 
 function next() {
   var i = game.i, n = game.stops.length;
   statusEl.textContent = i < n ? "Stop " + (i + 1) + " of " + n : "Town hall";
-  walk(i, i + 1, function () { if (i < n) ask(i); else ending(); });
+  walk(i, i + 1, function () {
+    if (i >= n) return ending();
+    if (game.results[i]) showReveal(i); else ask(i);
+  });
+}
+
+// Jump straight to a stop (no walk), showing its answer if it has one
+function goStop(k) {
+  finale.hidden = true;
+  game.i = k;
+  var p = game.path[k + 1];
+  placeCat(p.x, p.y);
+  cat.mode = "idle";
+  statusEl.textContent = "Stop " + (k + 1) + " of " + game.stops.length;
+  game.stops.forEach(function (s, j) { document.getElementById("b" + j).classList.remove("here"); });
+  if (game.results[k]) showReveal(k); else ask(k);
+}
+function prevItem(i) { return i > 0 ? ["prev", "← Previous stop"] : null; }
+function wirePrev(i) {
+  var b = document.getElementById("prev");
+  if (b) b.addEventListener("click", function () { goStop(i - 1); });
 }
 
 function ask(i) {
   var st = game.stops[i], el = document.getElementById("b" + i);
   el.classList.remove("locked");
   el.classList.add("here");
+  setBack(i > 0 ? function () { goStop(i - 1); } : goHome);
   if (st.type === "rank") return askRank(i);
   var ev = st.ev, opts = optionsFor(ev.area, ev.agentKey);
   openSheet(place(st, i) +
@@ -305,17 +358,18 @@ function ask(i) {
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
     '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What matters most to you here?</label>' +
     '<button class="back" type="button" id="ownback">← Back</button></div>' +
-    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>');
+    '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>' +
+    navRow([prevItem(i)]));
+  wirePrev(i);
   sheet.querySelectorAll("[data-k]").forEach(function (b) {
     b.addEventListener("click", function () { answerChoice(i, b.getAttribute("data-k")); });
   });
   var form = document.getElementById("own"), input = document.getElementById("ownin");
+  var closeOwn = function () { form.hidden = true; document.getElementById("opts").hidden = false; setBack(i > 0 ? function () { goStop(i - 1); } : goHome); keepCatVisible(); };
   document.getElementById("other").addEventListener("click", function () {
-    document.getElementById("opts").hidden = true; form.hidden = false; input.focus(); keepCatVisible();
+    document.getElementById("opts").hidden = true; form.hidden = false; input.focus(); keepCatVisible(); setBack(closeOwn);
   });
-  document.getElementById("ownback").addEventListener("click", function () {
-    form.hidden = true; document.getElementById("opts").hidden = false; keepCatVisible();
-  });
+  document.getElementById("ownback").addEventListener("click", closeOwn);
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     var v = input.value.trim();
@@ -331,8 +385,10 @@ function askRank(i) {
     '<div class="chips"><span class="qtype">' + ico("sparkles") + "Quick taste check</span></div>" +
     "<h2>" + esc(REFRESH[st.area]) + '</h2><p class="hint">Tap them in order: most important first.</p><div class="opts grid2 rank" id="rk">' +
     a.items.map(function (x) { return '<button class="opt" data-r="' + x[0] + '"><span class="rn"></span>' + esc(x[1]) + "</button>"; }).join("") +
-    '</div><button class="back" id="rkclear" hidden>↺ Start over</button>');
+    "</div>" + navRow([prevItem(i), ["rkclear", "↺ Start over"]]));
+  wirePrev(i);
   var clear = document.getElementById("rkclear");
+  clear.hidden = true;
   sheet.querySelectorAll("[data-r]").forEach(function (b) {
     b.addEventListener("click", function () {
       var k = b.getAttribute("data-r");
@@ -349,7 +405,7 @@ function askRank(i) {
 
 function markStop(i, ok) {
   var el = document.getElementById("b" + i);
-  el.classList.remove("here");
+  el.classList.remove("here", "strong", "fading");
   el.classList.add(ok ? "strong" : "fading");
   el.querySelector(".badge").innerHTML = ico(ok ? "sparkles" : "differ");
 }
@@ -360,13 +416,14 @@ function answerChoice(i, key) {
   var upd = ok ? null : { area: ev.area, key: key,
     fix: "For " + a.about + ", put “" + mine + "” first",
     fixed: "Got it. For " + a.about + ", ‘" + mine + "’ comes first from now on." };
-  game.results[i] = { area: ev.area, choice: ev.choice, icon: st.icon, ok: ok, you: mine, other: theirs, upd: upd, saved: false };
-  markStop(i, ok);
   var followed = ok && ev.followedUpdate ? '<p class="followed">' + ico("check") + "Your agent followed the update you sent " + esc(ago(ev.followedUpdate)) + ".</p>" : "";
-  reveal(i, '<div class="vs"><div class="me"><small>Your priority</small><p>' + esc(mine) + "</p></div>" +
-    '<div class="ag"><small>' + ico("robot") + "Your agent's priority</small><p>" + esc(theirs) + "</p></div></div>" +
-    '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
-    (ok ? "Same as you. Your agent chose your way." : "Different. Your agent didn't choose your way.") + "</b><span>" + esc(ev.did) + "</span></div></div>" + followed);
+  game.results[i] = { area: ev.area, choice: ev.choice, icon: st.icon, ok: ok, you: mine, other: theirs, upd: upd, saved: false, sent: false,
+    body: '<div class="vs"><div class="me"><small>Your priority</small><p>' + esc(mine) + "</p></div>" +
+      '<div class="ag"><small>' + ico("robot") + "Your agent's priority</small><p>" + esc(theirs) + "</p></div></div>" +
+      '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
+      (ok ? "Same as you. Your agent chose your way." : "Different. Your agent didn't choose your way.") + "</b><span>" + esc(ev.did) + "</span></div></div>" + followed };
+  markStop(i, ok);
+  showReveal(i);
 }
 
 function answerRank(i, order) {
@@ -376,46 +433,57 @@ function answerRank(i, order) {
   var upd = ok && order.join() === agentOrder.join() ? null : { area: st.area, order: order,
     fix: "For " + a.about + ", my order is " + fmt(order),
     fixed: "Noted. For " + a.about + ", ‘" + labelOf(st.area, order[0]) + "’ first, then ‘" + labelOf(st.area, order[1]) + "’." };
-  game.results[i] = { area: st.area, choice: a.name + " (taste check)", icon: st.icon, ok: ok, you: labelOf(st.area, order[0]), other: labelOf(st.area, agentOrder[0]), upd: upd, saved: false };
+  game.results[i] = { area: st.area, choice: a.name + " (taste check)", icon: st.icon, ok: ok, you: labelOf(st.area, order[0]), other: labelOf(st.area, agentOrder[0]), upd: upd, saved: false, sent: false,
+    body: '<div class="vs"><div class="me"><small>Your order</small><p class="ord">' + esc(fmt(order)) + "</p></div>" +
+      '<div class="ag"><small>' + ico("robot") + "Your agent's picture</small><p class=\"ord\">" + esc(fmt(agentOrder)) + "</p></div></div>" +
+      '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
+      (ok ? (upd ? "Same top priority. A few details differ." : "Spot on. Your agent knows you here.") : "Your agent had you figured differently.") + "</b></div></div>" };
   markStop(i, ok);
-  reveal(i, '<div class="vs"><div class="me"><small>Your order</small><p class="ord">' + esc(fmt(order)) + "</p></div>" +
-    '<div class="ag"><small>' + ico("robot") + "Your agent's picture</small><p class=\"ord\">" + esc(fmt(agentOrder)) + "</p></div></div>" +
-    '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
-    (ok ? (upd ? "Same top priority. A few details differ." : "Spot on. Your agent knows you here.") : "Your agent had you figured differently.") + "</b></div></div>");
+  showReveal(i);
 }
 
-// Shared reveal: optional "save for my agent", keep walking, change my answer
-function reveal(i, body) {
+// The reveal: save for my agent, keep walking, change my answer, previous stop
+function showReveal(i) {
   var r = game.results[i], last = i === game.stops.length - 1;
-  var fix = r.upd ? '<div class="fixbox" id="fixbox"><p>Want your agent to know this?</p>' +
-    '<button class="btn soft" id="fix">' + ico("hand") + "<span>Save for my agent: " + esc(r.upd.fix) + "</span></button></div>" : "";
-  openSheet(place(game.stops[i], i) + body + fix +
+  var fix = "";
+  if (r.upd && r.sent) fix = '<p class="done">' + ico("check") + "Sent to your agent.</p>";
+  else if (r.upd && r.saved) fix = '<div class="fixbox"><p class="done">' + ico("check") + "Saved. You'll choose what to send at the town hall.</p></div>";
+  else if (r.upd) fix = '<div class="fixbox" id="fixbox"><p>Want your agent to know this?</p>' +
+    '<button class="btn soft" id="fix">' + ico("hand") + "<span>Save for my agent: " + esc(r.upd.fix) + "</span></button></div>";
+  openSheet(place(game.stops[i], i) + r.body + fix +
     '<button class="btn" id="on">' + (last ? "Walk to the town hall" : "Keep walking") + "</button>" +
-    '<button class="back" id="redo">← Change my answer</button>');
-  document.getElementById("redo").addEventListener("click", function () {
+    navRow([prevItem(i), r.sent ? null : ["redo", "← Change my answer"]]));
+  wirePrev(i);
+  var redo = function () {
     game.results[i] = null;
     var el = document.getElementById("b" + i);
     el.classList.remove("strong", "fading");
     el.querySelector(".badge").innerHTML = '<span class="num">' + (i + 1) + "</span>";
     ask(i);
-  });
+  };
+  var rb = document.getElementById("redo");
+  if (rb) rb.addEventListener("click", redo);
+  setBack(r.sent ? (i > 0 ? function () { goStop(i - 1); } : goHome) : redo);
   var fb = document.getElementById("fix");
   if (fb) fb.addEventListener("click", function () {
     r.saved = true;
     document.getElementById("fixbox").innerHTML = '<p class="done">' + ico("check") + "Saved. You'll choose what to send at the town hall.</p>";
   });
-  document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i++; setTimeout(next, 300); });
+  document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i = i + 1; setTimeout(next, 300); });
 }
 
 function ending() {
   var r = game.results, n = r.length;
   var same = r.filter(function (x) { return x.ok; }).length, diff = n - same;
   var ups = r.map(function (x, k) { return x.upd ? { k: k, x: x } : null; }).filter(Boolean);
-  saveSession({ at: now(), matched: same, total: n });
+  if (!game.saved) { saveSession({ at: now(), matched: same, total: n }); game.saved = true; }
+  game.done = true;
   closeSheet();
   document.getElementById("hall").classList.add("glow");
   cat.mode = "tired";
   setTimeout(function () { cat.mode = "sleeping"; document.getElementById("zz").classList.add("on"); }, 900);
+  var back = function () { game.done = false; goStop(n - 1); };
+  setBack(back);
 
   setTimeout(function () {
     finale.hidden = false;
@@ -423,19 +491,23 @@ function ending() {
       return '<tr class="' + (x.ok ? "ok" : "fade") + '"><td>' + ico(x.icon) + esc(x.choice) + "</td><td>" + esc(x.you) + "</td><td>" + esc(x.other) +
         '</td><td class="m">' + (x.ok ? "✔" : "✗") + "</td></tr>";
     }).join("");
-    var list = ups.map(function (u) {
+    var open = ups.filter(function (u) { return !u.x.sent; }), sent = ups.filter(function (u) { return u.x.sent; });
+    var list = open.map(function (u) {
       return '<li><label><input type="checkbox" data-u="' + u.k + '"' + (u.x.saved ? " checked" : "") + '><span>' + esc(u.x.upd.fix) + "</span></label></li>";
     }).join("");
+    var sentList = sent.map(function (u) { return "<li>" + ico("check") + " " + esc(u.x.upd.fix) + ' <span class="muted">· “' + esc(u.x.upd.fixed) + "”</span></li>"; }).join("");
     finale.innerHTML =
-      '<div class="card"><p class="kicker center">Your town · this catch-up</p>' +
+      '<div class="card">' + navRow([["fback", "← Back to last stop"]]) +
+      '<p class="kicker center">Your town · this catch-up</p>' +
       '<div class="score"><div class="ring" style="--p:' + Math.round(same / n * 100) + '"><span>' + same + "<small>/" + n + "</small></span></div>" +
       "<div><h1>made your way</h1>" +
       '<p class="lead">' + (diff ? "In " + diff + " of them, your agent went by a different priority than yours." : "Your agent still chooses like you. Nice.") + "</p></div></div>" +
       '<div class="bento">' +
       '<div class="tile wide"><h3>' + ico("target") + 'You vs your agent</h3><table class="pt"><thead><tr><th>Choice</th><th>You</th><th>Agent</th><th></th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
-      (ups.length ? '<div class="tile wide" id="sendtile"><h3>' + ico("hand") + "Send updates to your agent</h3>" +
+      (open.length ? '<div class="tile wide" id="sendtile"><h3>' + ico("hand") + "Send updates to your agent</h3>" +
         '<p class="hint">You choose what goes. Tick the ones you want, untick the rest.</p><ul class="sendlist">' + list + "</ul>" +
         '<button class="btn" id="send">' + ico("robot") + 'Send <span id="sc"></span> to my agent</button></div>' : "") +
+      (sent.length ? '<div class="tile wide"><h3>' + ico("robot") + "Sent to your agent</h3><ul class=\"plain sentlist\">" + sentList + "</ul></div>" : "") +
       '<div class="tile wide"><h3>' + ico("sparkles") + 'What you got</h3><ul class="gains">' +
       "<li>" + ico("speech") + "<span>You know why your agent made each choice, and where its priorities differ from yours.</span></li>" +
       "<li>" + ico("target") + "<span>Your next catch-up checks whether your agent actually follows the updates you send.</span></li>" +
@@ -443,6 +515,7 @@ function ending() {
       '<p class="closing">Your agent saves your time.<br><span>My Week Town keeps you, you.</span></p>' +
       '<button class="btn ghost" id="again">' + ico("home") + "Back home</button></div>";
 
+    document.getElementById("fback").addEventListener("click", back);
     var sendBtn = document.getElementById("send");
     function count() {
       var c = finale.querySelectorAll("[data-u]:checked").length;
@@ -453,10 +526,11 @@ function ending() {
       finale.querySelectorAll("[data-u]").forEach(function (c) { c.addEventListener("change", count); });
       count();
       sendBtn.addEventListener("click", function () {
-        var picked = [].map.call(finale.querySelectorAll("[data-u]:checked"), function (c) { return r[+c.getAttribute("data-u")].upd; });
-        sendUpdates(picked);
+        var picked = [].map.call(finale.querySelectorAll("[data-u]:checked"), function (c) { return r[+c.getAttribute("data-u")]; });
+        sendUpdates(picked.map(function (x) { return x.upd; }));
+        picked.forEach(function (x) { x.sent = true; x.saved = true; });
         document.getElementById("sendtile").innerHTML = "<h3>" + ico("robot") + "Your agent replied</h3><ul class=\"plain\">" +
-          picked.map(function (u) { return "<li>“" + esc(u.fixed) + "”</li>"; }).join("") + "</ul>" +
+          picked.map(function (x) { return "<li>“" + esc(x.upd.fixed) + "”</li>"; }).join("") + "</ul>" +
           '<p class="hint">' + ico("check") + " Sent. Your next catch-up checks whether it sticks to these.</p>";
       });
     }

@@ -297,3 +297,10 @@ h2 .ic { width: 24px; height: 24px; }
 .sendlist label { display: flex; gap: 10px; align-items: flex-start; background: var(--soft); border-radius: 14px; padding: 10px 12px; font-size: 0.92rem; cursor: pointer; }
 .sendlist input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
 .btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+
+/* Back navigation row */
+.navrow { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.navrow:has(> :only-child) { justify-content: center; }
+.navrow .back { margin: 0; }
+.card > .navrow { justify-content: flex-start; margin: -6px 0 6px; }
+.sentlist li { display: block; }
