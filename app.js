@@ -239,12 +239,13 @@ function navRow(items) {
 function pick(list, seed) { return list[seed % list.length]; }
 
 /* ---------- The game ---------- */
-// game.stops: one per question. A stop is { type: "choice", ev } or { type: "rank", area }, plus icon and place.
+// game.stops: one per question. A stop is { type: "choice", ev } (something the agent did) or { type: "check", scn } (a fun check).
+// Every stop is one everyday situation (scn) with 4 choices plus "Something else".
 function stopsFrom(qs) {
   return qs.map(function (q) {
-    var area = q.type === "choice" ? q.ev.area : q.area;
-    var icon = pickIcon(q.type === "choice" ? q.ev.icon : REFRESH[area].icon);
-    return Object.assign({ icon: icon, place: AREAS[area].place }, q);
+    var scn = q.type === "choice" ? q.ev.scn : q.scn, area = SCN[scn].area;
+    var agentKey = q.type === "choice" ? q.ev.agentKey : profile()[area].order[0];
+    return Object.assign({ scn: scn, area: area, agentKey: agentKey, icon: pickIcon(SCN[scn].icon), place: AREAS[area].place }, q);
   });
 }
 function inGame() { return game && game.playing && !game.done; }
@@ -348,9 +349,8 @@ function ask(i) {
   el.classList.remove("locked");
   el.classList.add("here");
   setBack(i > 0 ? function () { goStop(i - 1); } : goHome);
-  if (st.type === "rank") return askRank(i);
-  var ev = st.ev, opts = optionsFor(ev.area, ev.agentKey);
-  openSheet(stopHead(st, i) + catSays(i, ev.question) +
+  var opts = optionsFor(st.scn, st.agentKey);
+  openSheet(stopHead(st, i) + catSays(i, SCN[st.scn].q) +
     '<div class="opts grid2" id="opts">' +
     opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '">' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
@@ -376,30 +376,6 @@ function ask(i) {
   });
 }
 
-// Taste check: tap the 4 in order, most important first
-function askRank(i) {
-  var st = game.stops[i], a = AREAS[st.area], order = [];
-  openSheet(stopHead(st, i) + catSays(i, REFRESH[st.area].q) +
-    '<p class="hint">Tap them in order: most important first.</p><div class="opts grid2 rank" id="rk">' +
-    a.items.map(function (x) { return '<button class="opt" data-r="' + x[0] + '"><span class="rn"></span>' + esc(x[1]) + "</button>"; }).join("") +
-    "</div>" + navRow([prevItem(i), ["rkclear", "↺ Start over"]]));
-  wirePrev(i);
-  var clear = document.getElementById("rkclear");
-  clear.hidden = true;
-  sheet.querySelectorAll("[data-r]").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var k = b.getAttribute("data-r");
-      if (order.indexOf(k) >= 0) return;
-      order.push(k);
-      b.classList.add("picked");
-      b.querySelector(".rn").textContent = order.length;
-      clear.hidden = false;
-      if (order.length === a.items.length) setTimeout(function () { answerRank(i, order); }, 350);
-    });
-  });
-  clear.addEventListener("click", function () { askRank(i); });
-}
-
 function markStop(i, ok) {
   var el = document.getElementById("b" + i);
   el.classList.remove("here", "strong", "fading");
@@ -408,19 +384,9 @@ function markStop(i, ok) {
 }
 
 function answerChoice(i, key) {
-  var ev = game.stops[i].ev, a = AREAS[ev.area], mine = labelOf(ev.area, key), ok = key === ev.agentKey;
-  game.results[i] = { ok: ok, you: mine, sent: false, declined: false,
-    upd: ok ? null : { area: ev.area, key: key, fix: "For " + a.about + ", put “" + mine + "” first", fixed: "For " + a.about + ", “" + mine + "” comes first." } };
-  markStop(i, ok);
-  showReveal(i);
-}
-
-function answerRank(i, order) {
-  var st = game.stops[i], a = AREAS[st.area], agentOrder = profile()[st.area].order;
-  var fmt = function (o) { return o.map(function (k) { return labelOf(st.area, k); }).join(" › "); };
-  var ok = order.join() === agentOrder.join() || order[0] === agentOrder[0];
-  game.results[i] = { ok: ok, you: fmt(order), sent: false, declined: false,
-    upd: order.join() === agentOrder.join() ? null : { area: st.area, order: order, fix: "For " + a.about + ", my order is " + fmt(order), fixed: "For " + a.about + ": " + fmt(order) + "." } };
+  var st = game.stops[i], a = AREAS[st.area], prio = labelOf(st.area, key), ok = key === st.agentKey;
+  game.results[i] = { ok: ok, you: optionText(st.scn, key), sent: false, declined: false,
+    upd: ok ? null : { area: st.area, key: key, fix: "For " + a.about + ", put “" + prio + "” first", fixed: "For " + a.about + ", “" + prio + "” comes first." } };
   markStop(i, ok);
   showReveal(i);
 }
@@ -436,7 +402,7 @@ function showReveal(i) {
     '<button class="btn small" id="yes">Yes, tell it</button><button class="btn ghost small" id="no">No</button></div></div>';
   openSheet(stopHead(st, i) +
     '<div class="react ' + (r.upd && !r.ok ? "new" : "ok") + '"><span class="catface big"></span><div><b>' + esc(line) + "</b>" +
-    (st.type === "rank" ? '<span class="mine">Your order: ' + esc(r.you) + "</span>" : '<span class="mine">You picked: ' + esc(r.you) + "</span>") + "</div></div>" + askHtml +
+    '<span class="mine">You picked: ' + esc(r.you) + "</span>" + "</div></div>" + askHtml +
     '<button class="btn" id="on">' + (last ? "Finish" : "Next question") + "</button>" +
     navRow([prevItem(i), r.sent ? null : ["redo", "← Change my answer"]]));
   wirePrev(i);

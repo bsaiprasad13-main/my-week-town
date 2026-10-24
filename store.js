@@ -13,6 +13,14 @@ var ST = {
   }
 };
 var DAY = 864e5, MIN_Q = 4, MAX_Q = 6;
+(function () {
+  if (ST.get("dataVersion", 0) !== DATA_VERSION) {
+    ["feed", "lastSync", "pending", "askedAreas", "askedEvents", "askedChecks", "syncs", "profile", "rules", "sessions", "simIdx"].forEach(function (k) {
+      try { localStorage.removeItem("mwt-" + k); } catch (e) {}
+    });
+    ST.set("dataVersion", DATA_VERSION);
+  }
+})();
 
 function now() { return Date.now(); }
 function ago(t) {
@@ -44,11 +52,21 @@ function labelOf(area, k) {
   var it = AREAS[area].items.filter(function (x) { return x[0] === k; })[0];
   return it ? it[1] : k;
 }
-// Options for a choice question: the area's 4 priorities (a custom one replaces the last if the agent now uses it)
-function optionsFor(area, agentKey) {
-  var items = AREAS[area].items.map(function (x) { return { k: x[0], t: x[1] }; });
-  if (agentKey && agentKey.indexOf("custom:") === 0) items[3] = { k: agentKey, t: labelOf(area, agentKey) };
+// Options for a question: the situation's 4 concrete choices, each standing for one priority
+function optionsFor(scnId, agentKey) {
+  var sc = SCN[scnId], items = sc.options.map(function (x) { return { k: x[0], t: x[1] }; });
+  if (agentKey && agentKey.indexOf("custom:") === 0) items[3] = { k: agentKey, t: labelOf(sc.area, agentKey) };
   return items;
+}
+function optionText(scnId, k) {
+  if (k.indexOf("custom:") === 0) return k.slice(7);
+  var o = SCN[scnId].options.filter(function (x) { return x[0] === k; })[0];
+  return o ? o[1] : k;
+}
+// A situation turned into an agent event
+function fromScn(id, agentKey) {
+  var sc = SCN[id];
+  return { scn: id, area: sc.area, icon: sc.icon, question: sc.q, agentKey: agentKey, did: sc.did };
 }
 
 /* ---------- The agent's log ---------- */
@@ -56,7 +74,10 @@ function feed() {
   var f = ST.get("feed", null);
   if (!f) {
     var t = now();
-    f = SEED.map(function (e, i) { return Object.assign({ id: "s" + i, at: Math.round(t - e.daysAgo * DAY) }, e); });
+    f = SEED.map(function (e, i) {
+      var base = { id: "s" + i, at: Math.round(t - e.daysAgo * DAY) };
+      return e.routine ? Object.assign(base, e) : Object.assign(base, fromScn(e.scn, e.agentKey));
+    });
     ST.set("feed", f);
   }
   return f;
@@ -69,10 +90,10 @@ function simulateActivity(count) {
   var f = feed(), p = profile(), idx = ST.get("simIdx", 0), t = now();
   var after = Math.max(ST.get("lastSync", 0) || 0, t - 5 * 60000); // new activity always lands after the last catch-up
   for (var i = 0; i < count; i++) {
-    var tpl = SIM[(idx + i) % SIM.length], pr = p[tpl.area], top = pr.order[0];
-    f.push({ icon: tpl.icon, id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), area: tpl.area, choice: tpl.choice, agentKey: top,
-      did: tpl.did + " It went for " + labelOf(tpl.area, top).toLowerCase() + ".",
-      question: tpl.question, followedUpdate: pr.updatedAt || null });
+    var id = SIM[(idx + i) % SIM.length], area = SCN[id].area, pr = p[area], top = pr.order[0];
+    var ev = Object.assign({ id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), followedUpdate: pr.updatedAt || null }, fromScn(id, top));
+    ev.did = "Chose: " + optionText(id, top) + ".";
+    f.push(ev);
   }
   var r = SIM_ROUTINE[idx % SIM_ROUTINE.length];
   f.push(Object.assign({ id: "r" + t, at: Math.min(t, after + (count + 1) * 1000), routine: true }, r));
@@ -98,12 +119,13 @@ function prepareCatchUp() {
   var checks = [];
   if (qs.length < MIN_Q) {
     var used = take.map(function (id) { return eventById(id).area; });
-    var asked = ST.get("askedAreas", {});
-    checks = Object.keys(REFRESH)
-      .filter(function (a) { return used.indexOf(a) < 0; })
+    var asked = ST.get("askedChecks", {});
+    checks = CHECKS
+      .filter(function (id) { return used.indexOf(SCN[id].area) < 0; })
       .sort(function (a, b) { return (asked[a] || 0) - (asked[b] || 0); })
+      .filter(function (id, k, arr) { return arr.map(function (x) { return SCN[x].area; }).indexOf(SCN[id].area) === k; }) // one per area
       .slice(0, MIN_Q - qs.length);
-    checks.forEach(function (a) { qs.push({ type: "rank", area: a }); });
+    checks.forEach(function (id) { qs.push({ type: "check", scn: id }); });
   }
   return { at: t, last: last, qs: qs, take: take, carried: carried, checks: checks, fetched: fetched.length, fresh: fresh.length,
     choices: take.length };
@@ -115,9 +137,9 @@ function logRun(plan, status) {
   ST.set("syncs", log);
 }
 function commitCatchUp(plan) {
-  var asked = ST.get("askedAreas", {});
-  plan.checks.forEach(function (a) { asked[a] = plan.at; });
-  ST.set("askedAreas", asked);
+  var asked = ST.get("askedChecks", {});
+  plan.checks.forEach(function (id) { asked[id] = plan.at; });
+  ST.set("askedChecks", asked);
   ST.set("askedEvents", ST.get("askedEvents", []).concat(plan.take));
   ST.set("pending", plan.carried);
   logRun(plan, "used");
@@ -147,7 +169,7 @@ function sendUpdates(list) {
 }
 function saveSession(r) { var s = ST.get("sessions", []); s.push(r); ST.set("sessions", s); }
 function resetDemo() {
-  ["feed", "lastSync", "pending", "askedAreas", "askedEvents", "syncs", "profile", "rules", "sessions", "simIdx"].forEach(function (k) {
+  ["feed", "lastSync", "pending", "askedAreas", "askedEvents", "askedChecks", "syncs", "profile", "rules", "sessions", "simIdx"].forEach(function (k) {
     delete MEM[k];
     try { localStorage.removeItem("mwt-" + k); } catch (e) {}
   });

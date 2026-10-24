@@ -16,18 +16,17 @@ Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone wid
 - **Home** button in the header (asks to confirm mid-game; unanswered choices wait for the next game).
 - **Catch-up result:** "← Back" to home. That catch-up doesn't count, so nothing is skipped.
 - **Question and answer:** "← Previous" (jumps back instantly), "← Change my answer", and "← Back" from the typed answer.
-- **Taste check:** "↺ Start over" and "← Previous".
 - **Thank-you screen:** "← Back" to the last question.
 - **Admin detail pages:** "← Back to overview".
 - The phone/browser back button does the same as the on-screen back.
 
 ## How a game works
 1. **"Let's see what you like."** Tap **Wake up the cat**. Behind the scenes, the app catches up with the agent: only what happened **after the last successful catch-up** (first run: last 7 days). Each run is logged for the admin.
-2. **"The cat has 5 questions, it seems."** 4 to 6 questions: new situations from the user's week first, topped up with fun taste checks (rank 4 things) when little happened.
+2. **"The cat has 5 questions, it seems."** 4 to 6 questions: everyday situations from the user's week first (dinner, groceries, getting to work, weekends, chores, workouts, small gifts), topped up with fun everyday checks when little happened. No rare big purchases.
 3. **The cat asks**, in the voice the admin picked:
-   - *The cat speaks:* "Hmm, I've been wondering… You got a new TV. What did you want it to be great at?"
-   - *Narrator:* "The cat is curious… You got a new TV. What did you want it to be great at?"
-   Questions never mention the AI agent. Pick 1 of 4, or type your own.
+   - *The cat speaks:* "Hmm, I've been wondering… Monday, 8:40 am, and you're a bit late. How do you get to work?"
+   - *Narrator:* "The cat is curious… Monday, 8:40 am, and you're a bit late. How do you get to work?"
+   Each question is one small situation where a single decision shows a clear priority. 4 concrete choices (cab ₹320 / metro ₹40 / wait for an AC cab / bike-share), plus **Something else** to type your own. One answer only. Questions never mention the AI agent.
 4. **The cat reacts.** Same as what the AI thinks: "I knew it!" Different: "Ooh, noted! Should I let your AI know?" **Yes** sends it right away; **No** keeps it private. No other AI details are shown.
 5. **"Thanks! That's all for now."** How many the cat guessed right, and what your AI now knows.
 
@@ -36,7 +35,7 @@ Each question gets one icon from a 69-icon library in 7 groups (Shopping, Food, 
 
 ## Trying the full loop (demo)
 1. Play once in `index.html` and say **Yes** to a few "Should I let your AI know?" questions.
-2. Play again right away: nothing new, so you get taste checks.
+2. Play again right away: nothing new, so you get fun everyday checks.
 3. Switch to admin, open the **Admin** tab and press **Simulate new agent activity**. Go to the **User** tab and play again: the agent now chooses by your updates.
 4. **Reset demo** in the Admin tab starts over.
 
