@@ -12,7 +12,7 @@ var ST = {
     try { localStorage.setItem("mwt-" + k, JSON.stringify(v)); } catch (e) {}
   }
 };
-var DAY = 864e5, MIN_Q = 3, MAX_Q = 5;
+var DAY = 864e5, MIN_Q = 4, MAX_Q = 6;
 
 function now() { return Date.now(); }
 function ago(t) {
@@ -70,7 +70,7 @@ function simulateActivity(count) {
   var after = Math.max(ST.get("lastSync", 0) || 0, t - 5 * 60000); // new activity always lands after the last catch-up
   for (var i = 0; i < count; i++) {
     var tpl = SIM[(idx + i) % SIM.length], pr = p[tpl.area], top = pr.order[0];
-    f.push({ id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), area: tpl.area, choice: tpl.choice, agentKey: top,
+    f.push({ icon: tpl.icon, id: "n" + t + "-" + i, at: Math.max(after + 1 + i, Math.min(t, after + (i + 1) * 1000)), area: tpl.area, choice: tpl.choice, agentKey: top,
       did: tpl.did + " It went for " + labelOf(tpl.area, top).toLowerCase() + ".",
       question: tpl.question, followedUpdate: pr.updatedAt || null });
   }
@@ -152,3 +152,8 @@ function resetDemo() {
     try { localStorage.removeItem("mwt-" + k); } catch (e) {}
   });
 }
+
+/* ---------- Icons and the cat's voice ---------- */
+function iconKeys() { var k = []; Object.keys(ICONS).forEach(function (c) { k = k.concat(Object.keys(ICONS[c])); }); return k; }
+function pickIcon(key) { return key && iconKeys().indexOf(key) >= 0 ? key : FALLBACK_ICON; }
+function voice() { var v = ST.get("voice", "speaks"); return VOICES[v] ? v : "speaks"; }

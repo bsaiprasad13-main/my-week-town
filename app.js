@@ -236,18 +236,20 @@ window.addEventListener("popstate", function () { if (backFn && !document.body.c
 function navRow(items) {
   return '<div class="navrow">' + items.filter(Boolean).map(function (x) { return '<button class="back" id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>";
 }
+function pick(list, seed) { return list[seed % list.length]; }
 
 /* ---------- The game ---------- */
 // game.stops: one per question. A stop is { type: "choice", ev } or { type: "rank", area }, plus icon and place.
 function stopsFrom(qs) {
   return qs.map(function (q) {
-    var a = AREAS[q.type === "choice" ? q.ev.area : q.area];
-    return Object.assign({ icon: a.icon, place: a.place }, q);
+    var area = q.type === "choice" ? q.ev.area : q.area;
+    var icon = pickIcon(q.type === "choice" ? q.ev.icon : REFRESH[area].icon);
+    return Object.assign({ icon: icon, place: AREAS[area].place }, q);
   });
 }
 function inGame() { return game && game.playing && !game.done; }
 
-// Home: the cat sleeps, nothing is fetched yet
+// Home: the cat sleeps
 function start() {
   game = { stops: [], i: 0, results: [], playing: false };
   game.L = layout(0);
@@ -256,33 +258,29 @@ function start() {
   cat.mode = "sleeping";
   document.getElementById("zz").classList.add("on");
   window.scrollTo(0, 0);
-  var last = ST.get("lastSync", null);
-  statusEl.textContent = last ? "Last catch-up " + ago(last) : "First catch-up";
+  statusEl.textContent = "";
   openSheet(
-    '<p class="kicker">It\'s 2040</p>' +
-    "<h1>Your agent has been <span class=\"hl\">busy</span>.</h1>" +
-    '<p class="lead">' + (last ? "Your last catch-up was " + ago(last) + "." : "This is your first catch-up.") +
-    " Wake up the cat: it'll check what your agent did since then, and ask you a few quick questions to see if it still gets you.</p>" +
+    "<h1>Let's see what <span class=\"hl\">you like</span>.</h1>" +
+    '<p class="lead">The cat has a few questions for you.</p>' +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>", true);
   document.getElementById("go").addEventListener("click", syncing);
   setBack(null);
 }
 
-// Leave the game from anywhere (Home button). Unanswered choices wait for the next game.
+// Leave the game from anywhere (Home button). Unanswered questions come back next time.
 function goHome() {
-  if (inGame() && !confirm("Leave this game? Answers you haven't sent won't be kept.")) return;
+  if (inGame() && !confirm("Leave this game? Unanswered questions will come back next time.")) return;
   if (inGame()) returnUnanswered(game.stops.filter(function (s, k) { return s.type === "choice" && !game.results[k]; }).map(function (s) { return s.ev.id; }));
   if (game && game.plan && !game.playing) cancelCatchUp(game.plan);
   start();
 }
 document.getElementById("homebtn").addEventListener("click", goHome);
 
-// The cat checks in with the agent and plans the game. Nothing counts until the user starts walking.
+// The app catches up quietly while the cat wakes up. Nothing counts until the user starts.
 function syncing() {
   cat.mode = "alert";
   document.getElementById("zz").classList.remove("on");
-  openSheet('<p class="kicker">Catching up</p><h2>' + ico("robot") + " Checking in with your agent…</h2>" +
-    '<p class="lead">It\'s a chatty one. Give it a second.</p><div class="dots"><i></i><i></i><i></i></div>');
+  openSheet("<h2>The cat is waking up…</h2><div class=\"dots\"><i></i><i></i><i></i></div>");
   setBack(null);
   setTimeout(function () {
     var plan = prepareCatchUp();
@@ -291,19 +289,10 @@ function syncing() {
     game.L = layout(game.stops.length);
     drawTown();
     cat.mode = "idle";
-    var checks = plan.checks.length, total = plan.choices + plan.carried.length;
-    var since = plan.last ? "your last catch-up (" + ago(plan.last) + ")" : "the last 7 days";
-    var head, lead;
-    if (plan.choices) {
-      head = (plan.last ? "Since " + since : "In the last 7 days") + ", your agent made <span class=\"hl\">" + total + " crucial choice" + (total === 1 ? "" : "s") + "</span>.";
-      lead = "Let's see if it still chooses like you." + (checks ? " Plus " + checks + " quick taste check" + (checks === 1 ? "" : "s") + " to keep it sharp." : "") +
-        (plan.carried.length ? " " + plan.carried.length + " more will wait for your next game." : "");
-    } else {
-      head = "Nothing new since " + since + ".";
-      lead = "Your agent has been napping too. So the cat has " + checks + " quick taste checks, to see if what matters to you has changed.";
-    }
-    statusEl.textContent = game.stops.length + " stops";
-    openSheet('<p class="kicker">Caught up ' + ico("check") + "</p><h1>" + head + "</h1><p class=\"lead\">" + lead + "</p>" +
+    var n = game.stops.length;
+    statusEl.textContent = n + " questions";
+    openSheet("<h1>The cat has <span class=\"hl\">" + n + " questions</span>, it seems.</h1>" +
+      '<p class="lead">' + (plan.choices ? "Some about your week, some just for fun." : "Nothing big happened, so these are just for fun.") + "</p>" +
       '<button class="btn" id="walk">' + ico("sparkles") + "Let's go</button>" + navRow([["cback", "← Back"]]));
     var back = function () { cancelCatchUp(plan); start(); };
     document.getElementById("cback").addEventListener("click", back);
@@ -314,12 +303,12 @@ function syncing() {
       closeSheet();
       setTimeout(next, 350);
     });
-  }, reduceMotion ? 50 : 1400);
+  }, reduceMotion ? 50 : 1200);
 }
 
 function next() {
   var i = game.i, n = game.stops.length;
-  statusEl.textContent = i < n ? "Stop " + (i + 1) + " of " + n : "Town hall";
+  statusEl.textContent = i < n ? (i + 1) + " of " + n : "Done";
   walk(i, i + 1, function () {
     if (i >= n) return ending();
     if (game.results[i]) showReveal(i); else ask(i);
@@ -329,18 +318,29 @@ function next() {
 // Jump straight to a stop (no walk), showing its answer if it has one
 function goStop(k) {
   finale.hidden = true;
+  game.done = false;
   game.i = k;
   var p = game.path[k + 1];
   placeCat(p.x, p.y);
   cat.mode = "idle";
-  statusEl.textContent = "Stop " + (k + 1) + " of " + game.stops.length;
+  statusEl.textContent = (k + 1) + " of " + game.stops.length;
   game.stops.forEach(function (s, j) { document.getElementById("b" + j).classList.remove("here"); });
   if (game.results[k]) showReveal(k); else ask(k);
 }
-function prevItem(i) { return i > 0 ? ["prev", "← Previous stop"] : null; }
+function prevItem(i) { return i > 0 ? ["prev", "← Previous"] : null; }
 function wirePrev(i) {
   var b = document.getElementById("prev");
   if (b) b.addEventListener("click", function () { goStop(i - 1); });
+}
+
+// The cat asks, in the voice the admin picked
+function catSays(i, text) {
+  var v = voice(), opener = pick(VOICES[v].openers, i);
+  if (v === "speaks") return '<div class="bubble"><span class="who"><span class="catface"></span></span><div><small>' + esc(opener) + "</small><h2>" + esc(text) + "</h2></div></div>";
+  return '<p class="narr">' + esc(opener) + "</p><h2>" + esc(text) + "</h2>";
+}
+function stopHead(st, i) {
+  return '<div class="kicker"><span class="kplace">' + ico(st.icon) + esc(st.place) + '</span><span class="count">' + (i + 1) + " of " + game.stops.length + "</span></div>";
 }
 
 function ask(i) {
@@ -350,13 +350,11 @@ function ask(i) {
   setBack(i > 0 ? function () { goStop(i - 1); } : goHome);
   if (st.type === "rank") return askRank(i);
   var ev = st.ev, opts = optionsFor(ev.area, ev.agentKey);
-  openSheet(place(st, i) +
-    '<div class="chips"><span class="qtype">' + ico("target") + "Your priority</span>" +
-    '<span class="src">' + ico("calendar") + esc(ago(ev.at)) + "</span></div>" +
-    "<h2>" + esc(ev.question) + '</h2><div class="opts grid2" id="opts">' +
+  openSheet(stopHead(st, i) + catSays(i, ev.question) +
+    '<div class="opts grid2" id="opts">' +
     opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '">' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
-    '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What matters most to you here?</label>' +
+    '<form class="own" id="own" hidden><div class="ownhead"><label for="ownin">What matters most to you?</label>' +
     '<button class="back" type="button" id="ownback">← Back</button></div>' +
     '<div class="ownrow"><input id="ownin" maxlength="40" placeholder="e.g. Eco-friendly" autocomplete="off"><button class="btn small" type="submit">Done</button></div></form>' +
     navRow([prevItem(i)]));
@@ -378,12 +376,11 @@ function ask(i) {
   });
 }
 
-// Quick taste check: tap the 4 priorities in order, most important first
+// Taste check: tap the 4 in order, most important first
 function askRank(i) {
   var st = game.stops[i], a = AREAS[st.area], order = [];
-  openSheet(place(st, i) +
-    '<div class="chips"><span class="qtype">' + ico("sparkles") + "Quick taste check</span></div>" +
-    "<h2>" + esc(REFRESH[st.area]) + '</h2><p class="hint">Tap them in order: most important first.</p><div class="opts grid2 rank" id="rk">' +
+  openSheet(stopHead(st, i) + catSays(i, REFRESH[st.area].q) +
+    '<p class="hint">Tap them in order: most important first.</p><div class="opts grid2 rank" id="rk">' +
     a.items.map(function (x) { return '<button class="opt" data-r="' + x[0] + '"><span class="rn"></span>' + esc(x[1]) + "</button>"; }).join("") +
     "</div>" + navRow([prevItem(i), ["rkclear", "↺ Start over"]]));
   wirePrev(i);
@@ -407,51 +404,40 @@ function markStop(i, ok) {
   var el = document.getElementById("b" + i);
   el.classList.remove("here", "strong", "fading");
   el.classList.add(ok ? "strong" : "fading");
-  el.querySelector(".badge").innerHTML = ico(ok ? "sparkles" : "differ");
+  el.querySelector(".badge").innerHTML = ico(ok ? "sparkles" : "thought");
 }
 
 function answerChoice(i, key) {
-  var st = game.stops[i], ev = st.ev, a = AREAS[ev.area];
-  var mine = labelOf(ev.area, key), theirs = labelOf(ev.area, ev.agentKey), ok = key === ev.agentKey;
-  var upd = ok ? null : { area: ev.area, key: key,
-    fix: "For " + a.about + ", put “" + mine + "” first",
-    fixed: "Got it. For " + a.about + ", ‘" + mine + "’ comes first from now on." };
-  var followed = ok && ev.followedUpdate ? '<p class="followed">' + ico("check") + "Your agent followed the update you sent " + esc(ago(ev.followedUpdate)) + ".</p>" : "";
-  game.results[i] = { area: ev.area, choice: ev.choice, icon: st.icon, ok: ok, you: mine, other: theirs, upd: upd, saved: false, sent: false,
-    body: '<div class="vs"><div class="me"><small>Your priority</small><p>' + esc(mine) + "</p></div>" +
-      '<div class="ag"><small>' + ico("robot") + "Your agent's priority</small><p>" + esc(theirs) + "</p></div></div>" +
-      '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
-      (ok ? "Same as you. Your agent chose your way." : "Different. Your agent didn't choose your way.") + "</b><span>" + esc(ev.did) + "</span></div></div>" + followed };
+  var ev = game.stops[i].ev, a = AREAS[ev.area], mine = labelOf(ev.area, key), ok = key === ev.agentKey;
+  game.results[i] = { ok: ok, you: mine, sent: false, declined: false,
+    upd: ok ? null : { area: ev.area, key: key, fix: "For " + a.about + ", put “" + mine + "” first", fixed: "For " + a.about + ", “" + mine + "” comes first." } };
   markStop(i, ok);
   showReveal(i);
 }
 
 function answerRank(i, order) {
   var st = game.stops[i], a = AREAS[st.area], agentOrder = profile()[st.area].order;
-  var ok = order[0] === agentOrder[0];
   var fmt = function (o) { return o.map(function (k) { return labelOf(st.area, k); }).join(" › "); };
-  var upd = ok && order.join() === agentOrder.join() ? null : { area: st.area, order: order,
-    fix: "For " + a.about + ", my order is " + fmt(order),
-    fixed: "Noted. For " + a.about + ", ‘" + labelOf(st.area, order[0]) + "’ first, then ‘" + labelOf(st.area, order[1]) + "’." };
-  game.results[i] = { area: st.area, choice: a.name + " (taste check)", icon: st.icon, ok: ok, you: labelOf(st.area, order[0]), other: labelOf(st.area, agentOrder[0]), upd: upd, saved: false, sent: false,
-    body: '<div class="vs"><div class="me"><small>Your order</small><p class="ord">' + esc(fmt(order)) + "</p></div>" +
-      '<div class="ag"><small>' + ico("robot") + "Your agent's picture</small><p class=\"ord\">" + esc(fmt(agentOrder)) + "</p></div></div>" +
-      '<div class="verdict ' + (ok ? "ok" : "fade") + '">' + ico(ok ? "check" : "differ", "vi") + "<div><b>" +
-      (ok ? (upd ? "Same top priority. A few details differ." : "Spot on. Your agent knows you here.") : "Your agent had you figured differently.") + "</b></div></div>" };
+  var ok = order.join() === agentOrder.join() || order[0] === agentOrder[0];
+  game.results[i] = { ok: ok, you: fmt(order), sent: false, declined: false,
+    upd: order.join() === agentOrder.join() ? null : { area: st.area, order: order, fix: "For " + a.about + ", my order is " + fmt(order), fixed: "For " + a.about + ": " + fmt(order) + "." } };
   markStop(i, ok);
   showReveal(i);
 }
 
-// The reveal: save for my agent, keep walking, change my answer, previous stop
+// After the answer: the cat reacts. If it's new, it asks whether to tell the user's AI.
 function showReveal(i) {
-  var r = game.results[i], last = i === game.stops.length - 1;
-  var fix = "";
-  if (r.upd && r.sent) fix = '<p class="done">' + ico("check") + "Sent to your agent.</p>";
-  else if (r.upd && r.saved) fix = '<div class="fixbox"><p class="done">' + ico("check") + "Saved. You'll choose what to send at the town hall.</p></div>";
-  else if (r.upd) fix = '<div class="fixbox" id="fixbox"><p>Want your agent to know this?</p>' +
-    '<button class="btn soft" id="fix">' + ico("hand") + "<span>Save for my agent: " + esc(r.upd.fix) + "</span></button></div>";
-  openSheet(place(game.stops[i], i) + r.body + fix +
-    '<button class="btn" id="on">' + (last ? "Walk to the town hall" : "Keep walking") + "</button>" +
+  var r = game.results[i], last = i === game.stops.length - 1, st = game.stops[i];
+  var line = r.ok && !r.upd ? pick(CAT_MATCH, i) : r.ok ? pick(CAT_MATCH, i) : pick(CAT_NEW, i);
+  var askHtml = "";
+  if (r.upd && r.sent) askHtml = '<p class="done">' + ico("check") + "Done! Your AI knows now.</p>";
+  else if (r.upd && r.declined) askHtml = '<p class="done quiet">' + ico("thought") + "Okay, it stays between us.</p>";
+  else if (r.upd) askHtml = '<div class="askai" id="askai"><p>Should I let your AI know?</p><div class="yn">' +
+    '<button class="btn small" id="yes">Yes, tell it</button><button class="btn ghost small" id="no">No</button></div></div>';
+  openSheet(stopHead(st, i) +
+    '<div class="react ' + (r.upd && !r.ok ? "new" : "ok") + '"><span class="catface big"></span><div><b>' + esc(line) + "</b>" +
+    (st.type === "rank" ? '<span class="mine">Your order: ' + esc(r.you) + "</span>" : '<span class="mine">You picked: ' + esc(r.you) + "</span>") + "</div></div>" + askHtml +
+    '<button class="btn" id="on">' + (last ? "Finish" : "Next question") + "</button>" +
     navRow([prevItem(i), r.sent ? null : ["redo", "← Change my answer"]]));
   wirePrev(i);
   var redo = function () {
@@ -464,79 +450,40 @@ function showReveal(i) {
   var rb = document.getElementById("redo");
   if (rb) rb.addEventListener("click", redo);
   setBack(r.sent ? (i > 0 ? function () { goStop(i - 1); } : goHome) : redo);
-  var fb = document.getElementById("fix");
-  if (fb) fb.addEventListener("click", function () {
-    r.saved = true;
-    document.getElementById("fixbox").innerHTML = '<p class="done">' + ico("check") + "Saved. You'll choose what to send at the town hall.</p>";
-  });
+  var yes = document.getElementById("yes"), no = document.getElementById("no");
+  if (yes) yes.addEventListener("click", function () { sendUpdates([r.upd]); r.sent = true; showReveal(i); });
+  if (no) no.addEventListener("click", function () { r.declined = true; showReveal(i); });
   document.getElementById("on").addEventListener("click", function () { closeSheet(); game.i = i + 1; setTimeout(next, 300); });
 }
 
 function ending() {
   var r = game.results, n = r.length;
-  var same = r.filter(function (x) { return x.ok; }).length, diff = n - same;
-  var ups = r.map(function (x, k) { return x.upd ? { k: k, x: x } : null; }).filter(Boolean);
+  var same = r.filter(function (x) { return x.ok; }).length;
+  var sent = r.filter(function (x) { return x.sent; });
   if (!game.saved) { saveSession({ at: now(), matched: same, total: n }); game.saved = true; }
   game.done = true;
   closeSheet();
   document.getElementById("hall").classList.add("glow");
   cat.mode = "tired";
   setTimeout(function () { cat.mode = "sleeping"; document.getElementById("zz").classList.add("on"); }, 900);
-  var back = function () { game.done = false; goStop(n - 1); };
+  var back = function () { goStop(n - 1); };
   setBack(back);
 
   setTimeout(function () {
     finale.hidden = false;
-    var rows = r.map(function (x) {
-      return '<tr class="' + (x.ok ? "ok" : "fade") + '"><td>' + ico(x.icon) + esc(x.choice) + "</td><td>" + esc(x.you) + "</td><td>" + esc(x.other) +
-        '</td><td class="m">' + (x.ok ? "✔" : "✗") + "</td></tr>";
-    }).join("");
-    var open = ups.filter(function (u) { return !u.x.sent; }), sent = ups.filter(function (u) { return u.x.sent; });
-    var list = open.map(function (u) {
-      return '<li><label><input type="checkbox" data-u="' + u.k + '"' + (u.x.saved ? " checked" : "") + '><span>' + esc(u.x.upd.fix) + "</span></label></li>";
-    }).join("");
-    var sentList = sent.map(function (u) { return "<li>" + ico("check") + " " + esc(u.x.upd.fix) + ' <span class="muted">· “' + esc(u.x.upd.fixed) + "”</span></li>"; }).join("");
     finale.innerHTML =
-      '<div class="card">' + navRow([["fback", "← Back to last stop"]]) +
-      '<p class="kicker center">Your town · this catch-up</p>' +
-      '<div class="score"><div class="ring" style="--p:' + Math.round(same / n * 100) + '"><span>' + same + "<small>/" + n + "</small></span></div>" +
-      "<div><h1>made your way</h1>" +
-      '<p class="lead">' + (diff ? "In " + diff + " of them, your agent went by a different priority than yours." : "Your agent still chooses like you. Nice.") + "</p></div></div>" +
-      '<div class="bento">' +
-      '<div class="tile wide"><h3>' + ico("target") + 'You vs your agent</h3><table class="pt"><thead><tr><th>Choice</th><th>You</th><th>Agent</th><th></th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
-      (open.length ? '<div class="tile wide" id="sendtile"><h3>' + ico("hand") + "Send updates to your agent</h3>" +
-        '<p class="hint">You choose what goes. Tick the ones you want, untick the rest.</p><ul class="sendlist">' + list + "</ul>" +
-        '<button class="btn" id="send">' + ico("robot") + 'Send <span id="sc"></span> to my agent</button></div>' : "") +
-      (sent.length ? '<div class="tile wide"><h3>' + ico("robot") + "Sent to your agent</h3><ul class=\"plain sentlist\">" + sentList + "</ul></div>" : "") +
-      '<div class="tile wide"><h3>' + ico("sparkles") + 'What you got</h3><ul class="gains">' +
-      "<li>" + ico("speech") + "<span>You know why your agent made each choice, and where its priorities differ from yours.</span></li>" +
-      "<li>" + ico("target") + "<span>Your next catch-up checks whether your agent actually follows the updates you send.</span></li>" +
-      "</ul></div></div>" +
-      '<p class="closing">Your agent saves your time.<br><span>My Week Town keeps you, you.</span></p>' +
-      '<button class="btn ghost" id="again">' + ico("home") + "Back home</button></div>";
-
+      '<div class="card">' + navRow([["fback", "← Back"]]) +
+      '<div class="thanks"><span class="catface big"></span><h1>Thanks! That’s all for now.</h1>' +
+      '<p class="lead">You answered ' + n + " questions. The cat " + (same === n ? "guessed every one right." : "guessed " + same + " of them right.") + "</p></div>" +
+      (sent.length ? '<div class="tile wide"><h3>' + ico("robot") + "Your AI now knows</h3><ul class=\"plain\">" +
+        sent.map(function (x) { return "<li>" + esc(x.upd.fixed) + "</li>"; }).join("") + "</ul></div>" : "") +
+      '<button class="btn" id="again">' + ico("home") + "Back home</button></div>";
     document.getElementById("fback").addEventListener("click", back);
-    var sendBtn = document.getElementById("send");
-    function count() {
-      var c = finale.querySelectorAll("[data-u]:checked").length;
-      document.getElementById("sc").textContent = c + " update" + (c === 1 ? "" : "s");
-      sendBtn.disabled = !c;
-    }
-    if (sendBtn) {
-      finale.querySelectorAll("[data-u]").forEach(function (c) { c.addEventListener("change", count); });
-      count();
-      sendBtn.addEventListener("click", function () {
-        var picked = [].map.call(finale.querySelectorAll("[data-u]:checked"), function (c) { return r[+c.getAttribute("data-u")]; });
-        sendUpdates(picked.map(function (x) { return x.upd; }));
-        picked.forEach(function (x) { x.sent = true; x.saved = true; });
-        document.getElementById("sendtile").innerHTML = "<h3>" + ico("robot") + "Your agent replied</h3><ul class=\"plain\">" +
-          picked.map(function (x) { return "<li>“" + esc(x.upd.fixed) + "”</li>"; }).join("") + "</ul>" +
-          '<p class="hint">' + ico("check") + " Sent. Your next catch-up checks whether it sticks to these.</p>";
-      });
-    }
     document.getElementById("again").addEventListener("click", start);
     finale.scrollTop = 0;
-  }, reduceMotion ? 0 : 1800);
+  }, reduceMotion ? 0 : 1600);
 }
+
+window.addEventListener("storage", function (e) { if (e.key === "mwt-voice" && inGame() && game.stops[game.i] && !game.results[game.i]) ask(game.i); });
 
 start();

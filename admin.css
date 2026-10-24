@@ -49,3 +49,17 @@ body.in-admin .world, body.in-admin .sheet, body.in-admin .finale, body.in-admin
 h3.sub { font-size: 0.95rem; margin: 6px 0 2px; }
 #rolebox { display: inline-flex; gap: 6px; align-items: center; }
 @media (max-width: 520px) { #rolebox .tabs button { padding: 5px 9px; } #roleout { display: none; } #status { display: none; } }
+
+.voicebox { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-bottom: 14px; }
+.voicebox > div:first-child { flex: 1; min-width: 220px; }
+.voicebox b { display: flex; align-items: center; gap: 6px; }
+.voicebox b .ic { width: 22px; height: 22px; }
+.voicebox small { color: var(--muted); }
+.vtabs button { padding: 7px 14px; font-size: 0.85rem; }
+.vprev { flex-basis: 100%; margin: 0; color: var(--muted); font-size: 0.9rem; font-style: italic; }
+.iconlib { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.iconlib span { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; background: var(--soft); border-radius: 14px; padding: 10px 6px; }
+.iconlib .ic { width: 36px; height: 36px; }
+.iconlib b { font-size: 0.82rem; }
+.iconlib small { color: var(--muted); font-size: 0.72rem; font-family: ui-monospace, Consolas, monospace; }
+.tbl td .ic { width: 26px; height: 26px; }

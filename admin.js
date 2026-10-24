@@ -29,6 +29,8 @@
     document.body.classList.toggle("in-admin", tab === "admin");
     view.hidden = tab !== "admin";
     if (tab === "admin") { detail = null; render(); window.scrollTo(0, 0); }
+    // A question already open on the user page picks up a new cat voice right away
+    if (tab === "user" && typeof inGame === "function" && inGame() && game.stops[game.i] && !game.results[game.i] && !sheet.querySelector("#own:not([hidden])")) ask(game.i);
     header();
   }
 
@@ -49,6 +51,7 @@
     { id: "data", icon: "clipboard", title: "Data from the user's agent", sum: function (d) { return d.f.length + " items · " + d.f.filter(function (e) { return e.routine; }).length + " routine"; } },
     { id: "picture", icon: "search", title: "The agent's picture of the user", sum: function (d) { return Object.keys(d.p).filter(function (a) { return d.p[a].updatedAt; }).length + " of " + Object.keys(AREAS).length + " areas updated by the user"; } },
     { id: "updates", icon: "hand", title: "Updates and games", sum: function (d) { return d.rules.length + " updates · " + d.sessions.length + " games"; } },
+    { id: "icons", icon: "sparkles", title: "Icon library", sum: function () { return iconKeys().length + " icons the model can pick from"; } },
     { id: "instr", icon: "scroll", title: "Model instructions", sum: function () { return (ST.get("instructions", null) ? "Edited" : "Default") + " · editable"; } }
   ];
 
@@ -69,9 +72,9 @@
             '</td><td><span class="tag ' + (used ? "asked" : "wait") + '">' + (used ? "Success, played" : "Fetched, user went back") + "</span></td></tr>";
         }).join("") + "</tbody></table></div>" : '<p class="empty">No catch-ups yet. They appear when the user starts a game.</p>');
     if (id === "data") return '<p class="lead">Everything the agent shared, newest first, and what the app did with it. The user never sees this.</p>' +
-      '<div class="scroll"><table class="tbl"><thead><tr><th>When</th><th>Area</th><th>What the agent did</th><th>Agent\'s priority</th><th>Status</th></tr></thead><tbody>' +
+      '<div class="scroll"><table class="tbl"><thead><tr><th>When</th><th>Icon</th><th>Area</th><th>What the agent did</th><th>Agent\'s priority</th><th>Status</th></tr></thead><tbody>' +
       d.f.map(function (e) {
-        return "<tr><td>" + esc2(when(e.at)) + "</td><td>" + esc2(e.routine ? e.label : AREAS[e.area].name) + "</td><td>" + esc2(e.did) +
+        return "<tr><td>" + esc2(when(e.at)) + "</td><td>" + (e.routine ? "–" : icon(pickIcon(e.icon))) + "</td><td>" + esc2(e.routine ? e.label : AREAS[e.area].name) + "</td><td>" + esc2(e.did) +
           (e.looked ? '<br><span class="muted">Also looked at: ' + esc2(e.looked) + "</span>" : "") + "</td><td>" +
           (e.routine ? "–" : esc2(labelOf(e.area, e.agentKey)) + (e.followedUpdate ? '<br><span class="muted">follows a user update</span>' : "")) + "</td><td>" + status(e, d) + "</td></tr>";
       }).join("") + "</tbody></table></div>";
@@ -89,6 +92,12 @@
       (d.sessions.length ? '<table class="tbl"><tbody>' + d.sessions.map(function (s) {
         return "<tr><td>" + esc2(when(s.at)) + "</td><td>" + s.matched + " of " + s.total + " made the user's way</td><td><b>" + Math.round(s.matched / s.total * 100) + "%</b></td></tr>";
       }).join("") + "</tbody></table>" : '<p class="empty">No games yet.</p>');
+    if (id === "icons") return '<p class="lead">For each question the model picks the closest icon from this library. If nothing fits, it uses the fallback (' + FALLBACK_ICON + ').</p>' +
+      Object.keys(ICONS).map(function (c) {
+        return '<h3 class="sub">' + esc2(c) + '</h3><div class="iconlib">' + Object.keys(ICONS[c]).map(function (k) {
+          return '<span>' + icon(k) + "<b>" + esc2(ICONS[c][k]) + "</b><small>" + esc2(k) + "</small></span>";
+        }).join("") + "</div>";
+      }).join("");
     if (id === "instr") return '<p class="lead">' + esc2(MODEL.intro) + " Edit them like project instructions.</p>" +
       '<div class="editor"><div class="ehead">' + icon("robot") + '<b>Instructions</b><span id="estate"></span></div>' +
       '<textarea id="instr" spellcheck="false" aria-label="Model instructions"></textarea>' +
@@ -119,12 +128,17 @@
       '<button class="btn ghost" id="reset">Reset demo</button>' +
       '<button class="btn ghost" id="touserrole">Switch to user role</button>' +
       "</div>" +
+      '<div class="voicebox"><div><b>' + icon("speech") + " The cat's voice</b><small>What the user sees in every question. Changes apply right away.</small></div>" +
+      '<div class="tabs vtabs">' + Object.keys(VOICES).map(function (v) {
+        return '<button data-voice="' + v + '" class="' + (voice() === v ? "on" : "") + '">' + esc2(VOICES[v].name) + "</button>";
+      }).join("") + '</div><p class="vprev">' + (voice() === "speaks" ? "“" + esc2(VOICES.speaks.openers[0]) + " You got a new TV. What did you want it to be great at?”" : esc2(VOICES.narrator.openers[0]) + " You got a new TV. What did you want it to be great at?") + "</p></div>" +
       '<div class="cards">' + SECTIONS.map(function (s) {
         return '<button class="acard" data-sec="' + s.id + '">' + icon(s.icon) + "<span><b>" + esc2(s.title) + "</b><small>" + esc2(s.sum(d)) + '</small></span><i>Open →</i></button>';
       }).join("") + "</div></div>";
     view.querySelectorAll("[data-sec]").forEach(function (b) {
       b.addEventListener("click", function () { detail = b.getAttribute("data-sec"); render(); window.scrollTo(0, 0); try { history.pushState({ adm: 1 }, ""); } catch (e) {} });
     });
+    view.querySelectorAll("[data-voice]").forEach(function (b) { b.addEventListener("click", function () { ST.set("voice", b.getAttribute("data-voice")); render(); }); });
     document.getElementById("sim").addEventListener("click", function () { simulateActivity(3); render(); });
     document.getElementById("touser").addEventListener("click", function () { show("user"); });
     document.getElementById("touserrole").addEventListener("click", function () { role = "user"; ST.set("role", role); show("user"); });
