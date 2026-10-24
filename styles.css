@@ -279,3 +279,21 @@ pre { margin: 0; background: #eef1f3; border: 1px solid var(--line); border-radi
 .spot.locked .num { filter: none; }
 .spot .plate { position: relative; z-index: 1; }
 @media (prefers-reduced-motion: reduce) { .ground .tree, .ground .flag, .ground .ripple, .fly { animation: none !important; } }
+
+/* Catch-up, taste checks and sending updates */
+.dots { display: flex; gap: 6px; margin: 6px 0 4px; }
+.dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); opacity: 0.3; animation: dot 1s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: 0.15s; } .dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dot { 50% { opacity: 1; transform: translateY(-3px); } }
+h2 .ic { width: 24px; height: 24px; }
+.hint { color: var(--muted); font-size: 0.88rem; margin: -2px 0 8px; }
+.rank .opt { position: relative; }
+.rank .rn { position: absolute; top: 6px; left: 8px; min-width: 20px; height: 20px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; color: #fff; background: transparent; display: grid; place-items: center; }
+.rank .opt.picked { border-color: var(--accent); background: var(--accent-soft); }
+.rank .opt.picked .rn { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+.ord { font-size: 0.92rem !important; line-height: 1.45 !important; }
+.followed { display: flex; gap: 6px; align-items: center; color: var(--ok-text); font-weight: 700; font-size: 0.9rem; margin: 10px 0 0; }
+.sendlist { list-style: none; padding: 0; margin: 0 0 4px; display: grid; gap: 7px; }
+.sendlist label { display: flex; gap: 10px; align-items: flex-start; background: var(--soft); border-radius: 14px; padding: 10px 12px; font-size: 0.92rem; cursor: pointer; }
+.sendlist input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
+.btn:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
