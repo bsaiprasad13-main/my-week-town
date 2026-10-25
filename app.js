@@ -1,4 +1,4 @@
-// My Week Town: the town, the walk and the screens. Data lives in data.js.
+// Cat Check: the town, the walk and the screens. Data lives in data.js.
 var W = 360, ROW = 132;
 var mapEl = document.getElementById("map"), sheet = document.getElementById("sheet"), finale = document.getElementById("finale");
 var statusEl = document.getElementById("status");

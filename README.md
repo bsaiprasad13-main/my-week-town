@@ -1,6 +1,6 @@
-# My Week Town (prototype)
+# Cat Check (prototype)
 
-It's 2040, and your AI agent makes most of your choices. My Week Town is a short game you can play **anytime**: a curious pixel cat walks you through a little town and asks what you like. When your answer differs from what your AI thinks, the cat asks if it should let your AI know.
+It's 2040, and your AI agent makes most of your choices. Cat Check is a short game you can play **anytime**: a curious pixel cat walks you through a little town and asks what you like. When your answer differs from what your AI thinks, the cat asks if it should let your AI know.
 
 Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone width).
 
