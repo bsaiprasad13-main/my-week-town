@@ -140,6 +140,7 @@ function drawTown() {
     game.trail[k] = { el: p, len: len };
   });
   placeCat(pts[0].x, pts[0].y);
+  game.pos = 0; game.busy = false;
 }
 
 function spot(p, id, icon, label, cls, num) {
@@ -175,9 +176,12 @@ function scrollPage(top, instant) {
   })(t0);
 }
 
+// Walk between two neighbouring points. Forward draws that leg's trail; backward erases it (and is a bit quicker).
 function walk(fromIdx, toIdx, done) {
-  var a = game.path[fromIdx], b = game.path[toIdx], my = (a.y + b.y) / 2;
-  var ms = reduceMotion ? 1 : Math.max(1200, Math.hypot(b.x - a.x, b.y - a.y) * 10);
+  var a = game.path[fromIdx], b = game.path[toIdx], my = (a.y + b.y) / 2, back = toIdx < fromIdx;
+  var ms = reduceMotion ? 1 : Math.max(back ? 800 : 1200, Math.hypot(b.x - a.x, b.y - a.y) * (back ? 6 : 10));
+  var legIdx = back ? toIdx : fromIdx;
+  game.busy = true;
   document.getElementById("zz").classList.remove("on");
   cat.mode = "alert";
   follow(b.y);
@@ -190,10 +194,10 @@ function walk(fromIdx, toIdx, done) {
       if (Math.hypot(x - prev.x, y - prev.y) > 0.3) cat.mode = direction(x - prev.x, y - prev.y);
       prev = { x: x, y: y };
       placeCat(x, y);
-      var tr = game.trail && game.trail[fromIdx];
-      if (tr) tr.el.style.strokeDashoffset = tr.len * (1 - t);
+      var tr = game.trail && game.trail[legIdx];
+      if (tr) tr.el.style.strokeDashoffset = tr.len * (back ? t : 1 - t);
       if (t < 1) nextFrame(step);
-      else { cat.mode = "idle"; cat.idleTicks = 0; done(); }
+      else { cat.mode = "idle"; cat.idleTicks = 0; game.pos = toIdx; game.busy = false; done(); }
     }
     nextFrame(step);
   }, reduceMotion ? 0 : 300);
@@ -371,17 +375,35 @@ function next() {
   });
 }
 
-// Jump straight to a stop (no walk), showing its answer if it has one
+// Show only the trail the cat has really walked: legs before path point p drawn, the rest hidden
+function setTrails(p) {
+  (game.trail || []).forEach(function (tr, j) { tr.el.style.strokeDashoffset = j < p ? 0 : tr.len; });
+}
+
+// Go back to a stop. One step back: the cat runs back along the road and the trail erases behind it.
+// Anything else: it moves there straight away, with the trail set to match.
 function goStop(k) {
+  if (game.busy) return;
+  var target = k + 1;
+  var show = function () {
+    game.i = k;
+    statusEl.textContent = (k + 1) + " of " + game.stops.length;
+    if (game.results[k]) showReveal(k); else ask(k);
+  };
   finale.hidden = true;
   game.done = false;
-  game.i = k;
-  var p = game.path[k + 1];
-  placeCat(p.x, p.y);
-  cat.mode = "idle";
-  statusEl.textContent = (k + 1) + " of " + game.stops.length;
   game.stops.forEach(function (s, j) { document.getElementById("b" + j).classList.remove("here"); });
-  if (game.results[k]) showReveal(k); else ask(k);
+  if (!reduceMotion && game.pos === target + 1) {
+    closeSheet();
+    walk(game.pos, target, function () { setTimeout(show, 150); });
+    return;
+  }
+  var p = game.path[target];
+  placeCat(p.x, p.y);
+  setTrails(target);
+  game.pos = target;
+  cat.mode = "idle";
+  show();
 }
 function prevItem(i) { return i > 0 ? ["prev", "← Previous"] : null; }
 function wirePrev(i) {
@@ -530,7 +552,7 @@ function ending() {
   closeSheet();
   document.getElementById("hall").classList.add("glow");
   cat.mode = "tired";
-  setTimeout(function () { cat.mode = "sleeping"; document.getElementById("zz").classList.add("on"); }, 900);
+  setTimeout(function () { if (!game.done) return; cat.mode = "sleeping"; document.getElementById("zz").classList.add("on"); }, 900);
   var back = function () { goStop(n - 1); };
   setBack(back);
 
