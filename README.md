@@ -26,6 +26,9 @@ Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone wid
 3. **The cat asks**, in the voice the admin picked (*"Hmm, I've been wondering… Booking a cab. What matters most to you?"* or the narrator version). The user **taps options in order** of what matters to them. Ranking is optional: one, a few, or all. **Something else** adds their own priority, which they can rank too. Questions never mention the AI agent.
 4. **The cat compares** the ranking with the agent's order for that area. Match (your #1 is the agent's #1, and anything else you ranked is in the agent's order): "I knew it!" No match: "Ooh, noted! Should I let your AI know?" **Yes** sends it right away (your ranking first, the rest keeps the agent's order); **No** keeps it private.
 5. **"Thanks! That's all for now."** How many the cat guessed right, and what your AI now knows.
+   - **Copy for my AI:** if the AI can't take updates from the app, this button copies them as plain lines ("For cab rides, "Safety" comes first.") to paste into the AI's chat.
+
+**Reminder:** when the AI made choices since the last game, the home screen says "The cat has new questions for you!" with how many choices, and the browser tab shows the count, e.g. "(3) Cat Check". (A website can't send phone notifications, so the prototype shows it in the app.)
 
 ## The 6 questions
 | # | Question | Options (plus Something else) |

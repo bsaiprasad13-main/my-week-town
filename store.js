@@ -143,6 +143,12 @@ function prepareCatchUp() {
   return { at: t, last: last, qs: qs, take: take, carried: [], checks: checks, fetched: fetched.length, fresh: fresh.length,
     choices: qs.length - checks.length };
 }
+// For the reminder on the home screen: how many important choices the agent made since the last game, without changing anything
+function waiting() {
+  var last = ST.get("lastSync", null), from = last || now() - 7 * DAY, pending = ST.get("pending", []);
+  var ids = pending.concat(feed().filter(function (e) { return !e.routine && e.at > from && pending.indexOf(e.id) < 0; }).map(function (e) { return e.id; }));
+  return ids.length;
+}
 function logRun(plan, status) {
   var log = ST.get("syncs", []);
   log.push({ at: plan.at, from: plan.last, fetched: plan.fetched, crucial: plan.fresh, routine: plan.fetched - plan.fresh,

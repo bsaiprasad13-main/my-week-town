@@ -31,6 +31,8 @@
     if (tab === "admin") { detail = null; render(); window.scrollTo(0, 0); }
     // A question already open on the user page picks up a new cat voice right away
     if (tab === "user" && typeof inGame === "function" && inGame() && game.stops[game.i] && !game.results[game.i] && !sheet.querySelector("#own:not([hidden])")) ask(game.i);
+    // Back on the home screen after simulating activity: show the fresh reminder
+    if (tab === "user" && typeof refreshHome === "function") refreshHome();
     header();
   }
 

@@ -272,9 +272,13 @@ function start() {
   document.getElementById("zz").classList.add("on");
   window.scrollTo(0, 0);
   statusEl.textContent = "";
+  // Reminder: when the AI made choices since the last game, the cat says questions are waiting (the tab title shows the count too)
+  var w = waiting();
+  document.title = w ? "(" + w + ") Cat Check" : "Cat Check";
   openSheet(
     "<h1>Let's see what <span class=\"hl\">you like</span>.</h1>" +
-    '<p class="lead">The cat has a few questions for you.</p>' +
+    (w ? '<div class="remind" id="remind">' + ico("speech") + "<div><b>The cat has new questions for you!</b><span>Your AI made " + w + " choice" + (w === 1 ? "" : "s") + " since you last played.</span></div></div>"
+      : '<p class="lead">The cat has a few questions for you.</p>') +
     '<button class="btn" id="go">' + ico("sparkles") + "Wake up the cat</button>", true);
   document.getElementById("go").addEventListener("click", syncing);
   setBack(null);
@@ -535,14 +539,41 @@ function ending() {
       '<div class="thanks"><span class="catface big"></span><h1>Thanks! That’s all for now.</h1>' +
       '<p class="lead">You answered ' + n + " questions. The cat " + (same === n ? "guessed every one right." : "guessed " + same + " of them right.") + "</p></div>" +
       (sent.length ? '<div class="tile wide"><h3>' + ico("robot") + "Your AI now knows</h3><ul class=\"plain\">" +
-        sent.map(function (x) { return "<li>" + esc(x.upd.fixed) + "</li>"; }).join("") + "</ul></div>" : "") +
+        sent.map(function (x) { return "<li>" + esc(x.upd.fixed) + "</li>"; }).join("") + "</ul>" +
+        // Backup when the AI can't take updates from the app: copy them and paste into the AI's chat
+        '<button class="btn ghost small" id="copyai">' + ico("clipboard") + "Copy for my AI</button>" +
+        '<p class="hint copied" id="copied" hidden>Copied! Paste it into your AI\'s chat.</p></div>' : "") +
       '<button class="btn" id="again">' + ico("home") + "Back home</button></div>";
+    var cb = document.getElementById("copyai");
+    if (cb) cb.addEventListener("click", function () {
+      copyText("My updated priorities:\n" + sent.map(function (x) { return "- " + x.upd.fixed; }).join("\n"));
+      document.getElementById("copied").hidden = false;
+      cb.innerHTML = ico("check") + "Copied";
+    });
     document.getElementById("fback").addEventListener("click", back);
     document.getElementById("again").addEventListener("click", start);
     finale.scrollTop = 0;
   }, reduceMotion ? 0 : 1600);
 }
 
-window.addEventListener("storage", function (e) { if (e.key === "mwt-voice" && inGame() && game.stops[game.i] && !game.results[game.i]) ask(game.i); });
+// Copy text, with a fallback for browsers that block the clipboard API
+function copyText(text) {
+  var fallback = function () {
+    var ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+  };
+  try { navigator.clipboard.writeText(text).catch(fallback); } catch (e) { fallback(); }
+}
+
+// Redraw the home screen (fresh reminder) when nothing is in progress
+function refreshHome() { if (game && !game.plan && !game.playing && !game.done) start(); }
+
+window.addEventListener("storage", function (e) {
+  if (e.key === "mwt-voice" && inGame() && game.stops[game.i] && !game.results[game.i]) ask(game.i);
+  if (e.key === "mwt-feed" || e.key === "mwt-lastSync") refreshHome();
+});
 
 start();
