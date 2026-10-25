@@ -409,7 +409,9 @@ function ask(i) {
   var base = stopOpts(st);
   var opts = base.concat(draft.extra.filter(function (x) { return !base.some(function (o) { return o.k === x.k; }); }));
   openSheet(stopHead(st, i) + catSays(i, stopQ(st)) +
-    '<div id="pick"><p class="hint">Tap in order of what matters to you. Rank as many as you like.</p>' +
+    // How to answer, highlighted so it isn't missed
+    '<div id="pick"><div class="howto"><span class="steps"><i>1</i><i>2</i><i>3</i></span><div><b>Tap what matters most first, then the next.</b>' +
+    "<span>Pick just one, or rank them all. Tap again to undo.</span></div></div>" +
     '<div class="opts rank" id="opts">' +
     opts.map(function (o) { return '<button class="opt" data-k="' + esc(o.k) + '"><span class="rn"></span>' + esc(o.t) + "</button>"; }).join("") +
     '<button class="opt other" id="other">' + ico("thought") + "Something else</button></div>" +
