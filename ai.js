@@ -1,4 +1,4 @@
-// Cat Check: a free, open-source AI model that runs inside the browser (WebLLM + WebGPU).
+// Cat Catch: a free, open-source AI model that runs inside the browser (WebLLM + WebGPU).
 // It writes each question from the agent's log and the admin's model instructions.
 // Nothing leaves the device. If the device can't run it, or the output is broken, the app uses the pre-written questions.
 

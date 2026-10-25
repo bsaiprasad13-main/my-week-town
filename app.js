@@ -1,4 +1,4 @@
-// Cat Check: the town, the walk and the screens. Data lives in data.js.
+// Cat Catch: the town, the walk and the screens. Data lives in data.js.
 var W = 360, ROW = 132;
 var mapEl = document.getElementById("map"), sheet = document.getElementById("sheet"), finale = document.getElementById("finale");
 var statusEl = document.getElementById("status");
@@ -278,7 +278,7 @@ function start() {
   statusEl.textContent = "";
   // Reminder: when the AI made choices since the last game, the cat says questions are waiting (the tab title shows the count too)
   var w = waiting();
-  document.title = w ? "(" + w + ") Cat Check" : "Cat Check";
+  document.title = w ? "(" + w + ") Cat Catch" : "Cat Catch";
   openSheet(
     "<h1>Let's see what <span class=\"hl\">you like</span>.</h1>" +
     (w ? '<div class="remind" id="remind">' + ico("speech") + "<div><b>The cat has new questions for you!</b><span>Your AI made " + w + " choice" + (w === 1 ? "" : "s") + " since you last played.</span></div></div>"

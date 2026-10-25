@@ -1,4 +1,4 @@
-// Cat Check: shared logic for the user app and the admin page.
+// Cat Catch: shared logic for the user app and the admin page.
 // Storage, the catch-up with the agent, building questions, and sending updates back to the agent.
 
 var MEM = {}; // fallback when the browser blocks storage

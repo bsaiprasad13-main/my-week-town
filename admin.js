@@ -1,4 +1,4 @@
-// Cat Check: role switch, User | Admin tabs, and the admin section.
+// Cat Catch: role switch, User | Admin tabs, and the admin section.
 // The user section (the game) is visible to everyone. The admin section is visible only in the admin role.
 (function () {
   var view = document.getElementById("adminview"), rolebox = document.getElementById("rolebox");

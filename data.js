@@ -1,4 +1,4 @@
-// Cat Check: sample data that stands in for the user's personal AI agent, plus the app's content.
+// Cat Catch: sample data that stands in for the user's personal AI agent, plus the app's content.
 var DATA_VERSION = 4; // bump when the sample data changes shape; old saved demo data is reset
 
 // The 6 questions, one per everyday area. items = the options (each one is a priority); agent = the agent's starting picture of the user, most important first.

@@ -1,6 +1,6 @@
-# Cat Check (prototype)
+# Cat Catch (prototype)
 
-It's 2040, and your AI agent makes most of your choices. Cat Check is a short game you can play **anytime**: a curious pixel cat walks you through a little town and asks what you like. When your answer differs from what your AI thinks, the cat asks if it should let your AI know.
+It's 2040, and your AI agent makes most of your choices. Cat Catch is a short game you can play **anytime**: a curious pixel cat walks you through a little town and asks what you like. When your answer differs from what your AI thinks, the cat asks if it should let your AI know.
 
 Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone width).
 
@@ -28,7 +28,7 @@ Plain HTML, CSS and JavaScript. No install. Open `index.html` (best at phone wid
 5. **"Thanks! That's all for now."** How many the cat guessed right, and what your AI now knows.
    - **Copy for my AI:** if the AI can't take updates from the app, this button copies them as plain lines ("For cab rides, "Safety" comes first.") to paste into the AI's chat.
 
-**Reminder:** when the AI made choices since the last game, the home screen says "The cat has new questions for you!" with how many choices, and the browser tab shows the count, e.g. "(3) Cat Check". (A website can't send phone notifications, so the prototype shows it in the app.)
+**Reminder:** when the AI made choices since the last game, the home screen says "The cat has new questions for you!" with how many choices, and the browser tab shows the count, e.g. "(3) Cat Catch". (A website can't send phone notifications, so the prototype shows it in the app.)
 
 ## The 6 questions
 | # | Question | Options (plus Something else) |
